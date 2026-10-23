@@ -1,0 +1,870 @@
+{
+  "更新日期": "2026-10-17",
+  "域名": {
+    "主域名": "191226269.xyz",
+    "说明": "名称服务器指向 Cloudflare，经 cloudflare tunnel 穿向阿里云服务器"
+  },
+  "设备": {
+    "N1-Armbian": {
+      "角色": "家庭服务器（斐讯N1 / Armbian / aarch64）",
+      "运行服务": "openlist、qbittorrent、AriaNg、portainer Docker 容器运行（immortalwrt 已于 2026-10-15 删除）；frpc、tailscaled、mihomo 活跃；aria2 当前未运行",
+      "ssh": {
+        "用户": "root",
+        "密码": "password",
+        "局域网": "ssh root@192.168.2.99 或 ssh root@100.89.133.50（tailscale）",
+        "公网": "历史配置为 ssh n1 经阿里云 443 CONNECT/frp 隧道；本机当前缺少 ~/.ssh/config 和 ~/.ssh/n1-tunnel.py，该快捷方式未验证可用",
+        "当前已验证": "通过 Tailscale 100.89.133.50，以目录已有 root 密码登录成功；主机密钥与本机已信任的 192.168.2.99 记录一致。当前本机公钥登录被拒绝"
+      },
+      "ip": {
+        "局域网": "192.168.2.99",
+        "frp": "8.156.91.160:11451（frpc → frps，token: password）",
+        "tailscale": {
+          "ipv4": "100.89.133.50",
+          "ipv6": "fd7a:115c:a1e0::b701:85c8",
+          "magicDNS": "armbian-proxy.tail240940.ts.net"
+        },
+        "无线局域网": "192.168.2.53（wlan0；2026-10-15 实测）"
+      },
+      "服务": [
+        {
+          "名称": "qBittorrent",
+          "本地端口": 8080,
+          "frp远端端口(阿里云本机)": 18080,
+          "公网访问": "https://qbit.191226269.xyz",
+          "备用路径": "https://191226269.xyz/n1-qbit/",
+          "说明": "BT下载；WebUI有密码,默认“adminadmin”；BT对等端口6881在家庭NAT后，公网不可直连",
+          "最近核验": {
+            "时间": "2026-10-15T14:59:03+08:00",
+            "容器": "running",
+            "N1回环HTTP": 200,
+            "公网HTTP": 200,
+            "范围": "仅验证页面响应，未操作账号、下载或管理功能"
+          }
+        },
+        {
+          "名称": "Portainer",
+          "本地端口": 9000,
+          "frp远端端口(阿里云本机)": 19000,
+          "公网访问": "https://portainer.191226269.xyz",
+          "备用路径": "https://191226269.xyz/n1-portainer/",
+          "说明": "Docker管理面板",
+          "最近核验": {
+            "时间": "2026-10-15T14:59:03+08:00",
+            "容器": "running",
+            "N1回环HTTP": 200,
+            "公网HTTP": 200,
+            "范围": "仅验证页面响应，未操作账号、下载或管理功能"
+          }
+        },
+        {
+          "名称": "OpenList 网盘",
+          "本地端口": 5244,
+          "frp远端端口(阿里云本机)": 5244,
+          "公网访问": "https://openlist.191226269.xyz",
+          "备用路径": "https://191226269.xyz/n1-openlist/",
+          "说明": "网盘；site_url=https://openlist.191226269.xyz（支持二级目录/子域）",
+          "最近核验": {
+            "时间": "2026-10-15T14:59:03+08:00",
+            "容器": "running",
+            "N1回环HTTP": 200,
+            "公网HTTP": 200,
+            "范围": "仅验证页面响应，未操作账号、下载或管理功能"
+          }
+        },
+        {
+          "名称": "aria2",
+          "本地端口": 6800,
+          "frp远端端口(阿里云本机)": 16800,
+          "公网RPC": "https://191226269.xyz/jsonrpc",
+          "rpcSecret": "712534e60696042c",
+          "说明": "下载引擎；BT端口6888",
+          "最近核验": {
+            "时间": "2026-10-15T14:59:03+08:00",
+            "状态": "未运行；未发现 aria2 进程/容器，aria2、aria2c systemd 单元均 inactive，6800 端口连接失败",
+            "公网RPC_HTTP": 502,
+            "说明": "AriaNg 静态面板可访问不代表下载引擎可用；本次未启动或修复服务"
+          }
+        },
+        {
+          "名称": "AriaNg（aria2 Web面板）",
+          "本地端口": 6880,
+          "frp远端端口(阿里云本机)": 16880,
+          "公网访问": "https://aria.191226269.xyz",
+          "备用路径": "https://191226269.xyz/n1-ariang/",
+          "说明": "已内置默认RPC配置（https://191226269.xyz/jsonrpc）",
+          "最近核验": {
+            "时间": "2026-10-15T14:59:03+08:00",
+            "容器": "running",
+            "N1回环HTTP": 200,
+            "公网HTTP": 200,
+            "范围": "仅验证页面响应，未操作账号、下载或管理功能"
+          }
+        },
+        {
+          "名称": "immortalwrt（已移除）",
+          "状态": "2026-10-15 按用户要求删除，服务不再运行",
+          "原ip": "192.168.2.98（macvlan 旁路由）",
+          "原说明": "透明代理网关/DNS+adblock-fast，无对外Web服务，未暴露公网",
+          "原版本": "24.10.0-rc3 r32584-afde822cf7f9（ghcr.io/ldxw/immortalwrt:arm64，镜像ID 4ed3f0541a20，23.3MB）",
+          "删除内容": [
+            "容器 immortalwrt（privileged，restart=always，cmd /sbin/init）",
+            "镜像 ghcr.io/ldxw/immortalwrt:arm64（含 @sha256:b05c8ba009d23d02e92dae10c0142c50b8b27d2818e1afa51899e542949c4569）",
+            "Docker macvlan 网络 macnet（parent=eth0，subnet 192.168.2.0/24，gw 192.168.2.1）",
+            "/etc/resolv.pre-tailscale-backup.conf 中残留的 nameserver 192.168.2.98 行（改前已另存 /etc/resolv.pre-tailscale-backup.conf.bak-20261015-101225）"
+          ],
+          "删除时间": "2026-10-15T18:12:00+08:00",
+          "删除前快照": "/root/immortalwrt-removal-20261015-101200（container-inspect.json、network-macnet-inspect.json、image-inspect.json、immortalwrt-image.tar.gz、immortalwrt-rootfs.tar.gz、restore.sh、SHA256SUMS，均已通过 gzip -t 校验）",
+          "恢复方式": "N1 上执行 /root/immortalwrt-removal-20261015-101200/restore.sh，即按原参数 docker load 镜像 + 重建 macnet + docker run 容器（192.168.2.98 / privileged / restart=always）",
+          "删除后核验": {
+            "时间": "2026-10-15T19:30:00+08:00",
+            "容器": "docker ps -a 已无 immortalwrt",
+            "镜像": "docker images 已无 immortalwrt 相关镜像",
+            "网络": "docker network ls 已无 macnet",
+            "地址": "从 wlan0 侧 ping/arping 192.168.2.98 均无响应，ARP 条目 FAILED/INCOMPLETE，地址已释放",
+            "N1自身": "192.168.2.99 / 192.168.2.53 / 100.89.133.50 地址保留",
+            "同机服务": "qbittorrent(8080)、portainer(9000)、openlist(5244)、ariang(6880) 回环 HTTP 200（aria2 6800 返回 404 属其 API 正常响应）；docker、containerd、mihomo、mihomo-netfilter、frpc、tailscaled、rsyslog、ssh 全部 active",
+            "公网": "qbit/portainer/openlist/aria 子域、主域、mahjong 子域全部 HTTP 200（复验于 19:31）"
+          },
+          "影响说明": "原 immortalwrt 承担的 DNS 过滤（adblock-fast）随容器一并消失；局域网客户端若曾把 DNS 指向 192.168.2.98，需改回 192.168.2.1。N1 自身的 DNS 由 Tailscale（100.100.100.100）接管，删除后实测 doubleclick.net 直接返回真实地址，未做过滤。",
+          "历史记录": {
+            "创建命令": "docker network create -d macvlan --subnet=192.168.2.0/24 --gateway=192.168.2.1 -o parent=eth0 macnet；docker run -d --name=immortalwrt --restart=always --network=macnet --privileged --ip=192.168.2.98 ghcr.io/ldxw/immortalwrt:arm64 /sbin/init",
+            "创建时间": "2026-08-12T05:20:42Z",
+            "运行时长": "约 3 周（至 2026-10-15 删除）",
+            "macvlan隔离": "N1 是 macnet 的父接口主机，直接 ping 192.168.2.98 不可达（实测 FAILED）；需临时经 wlan0 加 /32 路由才能从局域网侧访问"
+          }
+        },
+        {
+          "名称": "frpc",
+          "说明": "连阿里云 frps（8.156.91.160:11451，token: password），7条代理：ssh/socks5/openlist/portainer/qbit/aria/aria2rpc",
+          "最近核验": {
+            "时间": "2026-10-15T14:59:03+08:00",
+            "systemd": "active；单元已 enabled",
+            "范围": "未读取令牌、未复核每条代理配置"
+          }
+        }
+      ],
+      "系统": {
+        "发行版": "Ubuntu 18.04.6 LTS / Armbian",
+        "架构": "aarch64",
+        "内核": "5.0.2-aml-s905",
+        "根文件系统": "/dev/mmcblk1p2（LABEL=ROOT_EMMC，ext4，eMMC 8GTF4R，life_time=0x01=0-10% 寿命消耗，pre_eol_info=0x01 正常）",
+        "核验时间": "2026-10-15T19:30:00+08:00"
+      },
+      "文件系统维修记录": {
+        "触发": "2026-10-15 删除 immortalwrt 后主机异常断电重启，eMMC 根分区出现坏 inode（inode 6612 /var/lib/dpkg/info/init-system-helpers.md5sums，ext4 校验和不匹配 + 扩展属性块损坏）；随后 du 遍历触发 ext4_lookup 校验错误、日志中止、根分区被内核自动重挂为只读",
+        "修复": "1) 先只读定位（e2fsck -n）：损坏点、受影响 inode、Superblock 状态；2) 在线 e2fsck -f -y 修复文件系统结构与组统计（清理损坏 inode 的扩展属性）；3) 发现根分区仍只读，重启后仍报错，深挖定位到 initrd 缺少 fsck.ext4（fstab 根设备写成 /dev/root，构建 initrd 时无法识别类型），导致开机 fsck 从未真正执行",
+        "根因修复": [
+          "/etc/fstab 根条目 /dev/root → /dev/mmcblk1p2（已备份为 /etc/fstab.bak-20261015-110852）",
+          "update-initramfs -u 重建并打包 /boot/uInitrd，确认内含 sbin/e2fsck、sbin/fsck.ext4、sbin/logsave（此前 502 个成员中缺 fsck.ext4，fsck.log 报 'No such file or directory while executing fsck.ext4'）",
+          "一次性在 /boot/uEnv.ini 加 fsck.mode=force，重启执行完整开机 fsck：fsck.ext4 -f -y 五阶段全部通过、无 Fix 项，/run/initramfs/fsck-root 生成；随后恢复原始 bootargs"
+        ],
+        "修复后状态": {
+          "时间": "2026-10-15T19:30:00+08:00",
+          "根分区": "rw 挂载正常，可写",
+          "ext4状态": "clean（无 error 标志），dmesg 无 'mounting fs with errors' 警告",
+          "数据": "dpkg -C 无输出、dpkg -V coreutils 校验通过；5 个 Docker 容器与全部服务正常"
+        },
+        "日志与备份": "N1:/root/n1-fsck-20261015-1100（repair.log、offline-fsck.log、containers.txt）；/boot/uEnv.ini 各阶段备份 uEnv.ini.orig-20261015 / .pre-forcefsck-110939 / .bak-after-fsck-111152；本机备份见 C:\\Users\\茶鸣拾贰率\\Desktop\\n1-immortalwrt-removal\\backup-data-20261015-1845（etc/root/opt/docker-volumes/boot 全量 tar）",
+        "遗留": "eMMC 已有一次坏块记录（首次错误 2026-08-10 17:36:46），寿命余量健康但 N1 为单盘无冗余设备；建议后续定期只读 e2fsck -n 巡检，重要数据保留本机与阿里云双备份"
+      },
+      "最近核验": {
+        "时间": "2026-10-15T19:30:00+08:00",
+        "Tailscale": "online，100.89.133.50，offers exit node，直连",
+        "SSH": "密码登录成功（Tailscale 100.89.133.50）",
+        "备注": "本次执行了 immortalwrt 删除、root 文件系统修复与三次重启，均已验证"
+      },
+      "历史连接记录": {
+        "来源": "原目录备份 device.json.bak-personalrag-20261015-023051；历史说明不等同于当前验证结果",
+        "原局域网SSH说明": "ssh root@192.168.2.99 或 ssh root@100.89.133.50（tailscale）",
+        "原公网SSH说明": "本机执行 ssh n1（见 ~/.ssh/config，经阿里云443 CONNECT隧道 → frps 127.0.0.1:6000 → N1 sshd，本机 id_ed25519 公钥已授权）",
+        "原MagicDNS": "armbian.tail240940.ts.net",
+        "原SSH隧道说明": "SNI=191226269.xyz 的TLS直连被云平台策略拦截（其他SNI正常），公网SSH走无SNI的443 CONNECT隧道，客户端脚本 ~/.ssh/n1-tunnel.py"
+      },
+      "连接方式": [
+        {
+          "方式": "有线局域网直连 SSH",
+          "目标": "192.168.2.99:22",
+          "命令": "ssh root@192.168.2.99",
+          "认证": "密码见 ssh/密码；公钥为可选认证方式",
+          "状态": "保留；2026-10-15 N1实际网卡地址和22监听已确认，本机直连路径未复验"
+        },
+        {
+          "方式": "无线局域网直连 SSH",
+          "目标": "192.168.2.53:22",
+          "命令": "ssh root@192.168.2.53",
+          "认证": "密码见 ssh/密码",
+          "状态": "候选备用；2026-10-15 N1 wlan0地址及0.0.0.0:22已确认，未端到端验证"
+        },
+        {
+          "方式": "Tailscale IPv4 SSH",
+          "目标": "100.89.133.50:22",
+          "命令": "ssh root@100.89.133.50",
+          "认证": "密码见 ssh/密码；本机当前 id_ed25519 认证失败不影响密码方式",
+          "状态": "2026-10-15 密码登录已验证可用",
+          "主机身份": "已与本机信任的192.168.2.99主机密钥核对一致"
+        },
+        {
+          "方式": "Tailscale MagicDNS SSH",
+          "目标": "armbian-proxy.tail240940.ts.net:22",
+          "命令": "ssh root@armbian-proxy.tail240940.ts.net",
+          "认证": "密码见 ssh/密码",
+          "状态": "保留；名称来自2026-10-15 Tailscale对等节点，域名端到端登录尚未单独验证"
+        },
+        {
+          "方式": "Tailscale IPv6 SSH",
+          "目标": "fd7a:115c:a1e0::b701:85c8",
+          "端口": 22,
+          "用户": "root",
+          "认证": "密码见 ssh/密码",
+          "状态": "保留；地址来自Tailscale，IPv6路径未单独验证"
+        },
+        {
+          "方式": "历史公网443 CONNECT隧道",
+          "目标": "阿里云8.156.91.160:443 → frps 127.0.0.1:6000 → N1 sshd",
+          "命令": "ssh n1（历史本机别名）",
+          "认证": "N1密码或公钥；公钥当前状态见核验记录",
+          "前提": "本机~/.ssh/config的Host n1与ProxyCommand，以及~/.ssh/n1-tunnel.py；具体TLS/CONNECT处理见历史方案",
+          "状态": "保留为可恢复备用；本机配置及脚本当前缺失，尚未重建或端到端复验；2026-10-15阿里云443和127.0.0.1:6000监听已确认"
+        },
+        {
+          "方式": "通过阿里云SSH跳转到frp SSH映射",
+          "目标": "root@8.156.91.160 → 127.0.0.1:6000 → N1",
+          "命令": "ssh -o HostKeyAlias=192.168.2.99 -J root@8.156.91.160 -p 6000 root@127.0.0.1",
+          "认证": "跳板使用阿里云ssh认证/密码；目标使用N1 ssh/密码",
+          "状态": "有依据的候选备用；阿里云密码登录和127.0.0.1:6000监听已确认，尚未端到端测试此跳转命令"
+        },
+        {
+          "方式": "本机ssh n1别名（Tailscale可选方案）",
+          "目标": "100.89.133.50:22",
+          "配置建议": {
+            "Host": "n1",
+            "HostName": "100.89.133.50",
+            "User": "root",
+            "HostKeyAlias": "192.168.2.99"
+          },
+          "状态": "仅验证等价ssh -G参数展开；尚未写入本机config。与历史公网方案为两种可选别名定义，不能同时用同一Host n1直接区分；需要时使用不同别名保留两种方案"
+        }
+      ]
+    },
+    "阿里云服务器": {
+      "PersonalRAG只读HTTPS接口": {
+        "核验日期": "2026-10-16",
+        "地址": "https://191226269.xyz/personalrag/api",
+        "范围": "仅数据库召回元数据、选中正文、整轮原文、画像、统计；不运行模型，不回连客户端",
+        "服务": "personalrag-api.service，已启用并运行；127.0.0.1:18871，专用用户personalrag-api",
+        "运行目录": "/opt/personalrag-api/current；独立Python3.11环境/opt/personalrag-api/venv",
+        "配置": "/etc/personalrag/api.env（root600，数据库凭据仅云端保存）",
+        "鉴权": "随机Bearer令牌；云端仅保存SHA256；业务接口未授权返回401",
+        "数据库账号": "personalrag_https，SELECT-only，默认只读事务，语句超时15秒",
+        "HTTPS入口": "Apache复用/personalrag/api/路径；Cloudflare现有入口走Apache8080，443也继承路由；明文源站连接仅允许回环转发",
+        "反代配置": "/etc/httpd/conf.d/personalrag-api.conf和/etc/personalrag/apache-proxy.conf",
+        "资源实测": "云端服务工作集约34MiB；未加载torch、numpy或sentence_transformers",
+        "验证范围": "本次HTTPS/TLS、401/403/413/422、只读权限、实际MCP四工具、旧SQL路径结果对照通过；不代表长期稳定性验证",
+        "报告": "C:\\PersonalRAG\\docs\\validation\\2026-10-16-https-query.json",
+        "回退": "原SSH隧道和server_cloud.py保留为显式回退；新入口不会自动降级"
+      },
+      "Tailscale模型回连准备": {
+        "核验日期": "2026-10-16",
+        "用途": "已放弃的云端回调模型方案曾准备；最终采用本机主动HTTPS查询，不使用Tailscale",
+        "安装": "2026-10-16曾安装tailscale1.104.1，后已卸载该包并移除本次新增RPM源",
+        "服务": "已停止并禁用；自启链接已移除",
+        "连接状态": "始终未完成登录、未加入tailnet；清理前为NeedsLogin",
+        "启动参数": "accept-dns=false、accept-routes=false、hostname=personalrag-cloud；登录等待超时",
+        "迁移状态": "回调方案终止，未部署云端MCP或本机模型监听服务；最终HTTPS数据接口见同节点新记录"
+      },
+      "角色": "云服务器（Aliyun ECS / Alibaba Cloud Linux）",
+      "ssh": "ssh root@8.156.91.160；密码见 ssh认证。2026-10-15 密码登录已验证；此前本机 id_ed25519 密钥登录被拒绝。",
+      "ip": {
+        "ipv4": "8.156.91.160"
+      },
+      "服务": [
+        {
+          "名称": "WordPress",
+          "公网访问": "https://191226269.xyz",
+          "说明": "Apache(httpd) 监听 443/8080"
+        },
+        {
+          "名称": "frps",
+          "端口": 11451,
+          "token": "password",
+          "说明": "proxyBindAddr=127.0.0.1（穿透端口仅本机可达）；阿里云安全组仅放行 22/443/11451"
+        },
+        {
+          "名称": "cloudflared 隧道",
+          "说明": "token 模式；CF面板子域规则：qbit→127.0.0.1:18080、portainer→19000、openlist→5244、aria→16880、主域/www→8080"
+        },
+        {
+          "名称": "Apache 反代规则",
+          "说明": "443 CONNECT隧道（仅允许目标127.0.0.1:6000，供公网SSH）；/n1-* 路径反代；/jsonrpc→16800；子域按Host分流"
+        },
+        {
+          "名称": "PersonalRAG PostgreSQL（2026-10-15 迁移）",
+          "角色": "个人知识库数据库，与 Windows 本机 Docker 容器 pgrg 保持同一份数据的云端副本",
+          "本机监听": "127.0.0.1:5432（listen_addresses=localhost，不对外暴露，一律走 SSH 隧道）",
+          "版本": "PostgreSQL 18.6 + pgvector 0.8.7 + pg_trgm 1.6（原生 RPM，非 Docker）",
+          "库": "personal_rag（owner personal_rag_admin；应用账号 personal_rag_app）",
+          "集群目录": "/var/lib/pgsql/18/data",
+          "systemd": "postgresql-18.service（active）",
+          "凭据文件": "/root/personalrag-pg-credentials.txt（root 600）",
+          "规模": {
+            "库大小": "512 MB",
+            "行数": {
+              "session": 66,
+              "session_general": 66,
+              "embedding_general": 66,
+              "embedding_detailed": 16590,
+              "items_knowledge": 553,
+              "raw_data": 20430,
+              "standardized_request_data": 6979,
+              "standardized_response_data": 6442
+            },
+            "索引": "21 个（含 embedding_detailed_hnsw_idx 123 MB、embedding_general_hnsw_idx）"
+          },
+          "迁移记录": {
+            "日期": "2026-10-15",
+            "方式": "逐表指纹比对后只补差集，未整库重传",
+            "差集": "embedding_general 缺 57 行（上次画像补丁的那批），其余 7 张表指纹已一致",
+            "传输量": "808,323 B 上传（入方向不计费），全程出方向约 0.9 MB",
+            "校验": "8 张表 sum(hashtextextended(row::text)) 指纹与本机逐项一致；参照完整性异常项全为 0",
+            "端到端": "本地与云端各跑 7 查询 + 2 画像 + 2 fetch_turn，结果 byte-identical（连跑 3 次）",
+            "迁移前备份": "/root/personalrag-db-migrate-20261015/backups/pre_delta_full.dump（144,804,215 B，SHA256 5d32f1e538448324…）",
+            "报告": "C:\\personalrag-migrate\\.ops\\aliyun-db-migrate-20261015\\report.md",
+            "流量可视化报告": "C:\\personalrag-migrate\\.ops\\aliyun-db-migrate-20261015\\traffic-report.html"
+          },
+          "客户端连接": {
+            "方式": "SSH 本地端口转发（推荐，无需开放安全组）",
+            "隧道": "本地 127.0.0.1:15432 → ECS 127.0.0.1:5432",
+            "命令": "python C:\\personalrag-migrate\\.ops\\aliyun-db-migrate-20261015\\tunnel.py --local 15432 --remote 5432",
+            "等价原生写法": "ssh -N -L 15432:127.0.0.1:5432 root@8.156.91.160",
+            "快捷脚本": [
+              "C:\\PersonalRAG\\mcp\\tunnel-cloud.cmd（只开隧道）",
+              "C:\\PersonalRAG\\mcp\\run-cloud.cmd（开隧道＋用云端库启动 MCP server）",
+              "C:\\PersonalRAG\\mcp\\sync-to-cloud.cmd（本机→云端整库同步，先自动备份云端）",
+              "C:\\PersonalRAG\\mcp\\traffic-check.cmd（查看云端流量与本月预测）"
+            ],
+            "DSN示例": "postgresql://personal_rag_app:<见凭据文件>@127.0.0.1:15432/personal_rag"
+          },
+          "流量监控": {
+            "免费额度": "阿里云 CDT 公网出方向 220 GB/月；本项仅出方向计费，入方向免费",
+            "背景流量基线": "空载约 1.45 KB/s ≈ 3.5 GiB/月（其中约 74% 来自阿里云自带 agent 100.100.0.0/16：hbrclient / AliYunDun / cloudmonitor；约 74% 来自 Tailscale 100.64.0.0/10 保活）",
+            "单次检索实测": "网卡口径 84 KiB 出方向/查询（接入 MCP 时二次优化前为 118 KiB；更早报的 908 KB/205 KB 因测量工具自身 SSH 握手污染而偏高，已在报告中更正）",
+            "实测吞吐": "上传（免费）3.53 MiB/s；下载（计费）13.92 MiB/s",
+            "实测延迟": "本机容器中位 92 ms；云端经隧道中位 180 ms",
+            "监控脚本": "/usr/local/bin/personalrag-traffic-guard（--cron 时仅在超阈值输出）",
+            "计数规则": "/usr/local/bin/personalrag-traffic-accounting + personalrag-traffic-accounting.service（enabled，开机重建 nftables 出口计数）",
+            "vnstat": "已装并 enable，库 /var/lib/vnstat/vnstat.db",
+            "定时检查": "crontab: 17 8 * * * /usr/local/bin/personalrag-traffic-guard --cron",
+            "本月基线": "2026-10-15 实测 month-to-date 出方向 0.055 GiB，预测全月 0.114 GiB（额度 0.1%）"
+          },
+          "代码改动": {
+            "文件": [
+              "C:\\PersonalRAG\\mcp\\retrieve.py",
+              "C:\\PersonalRAG\\backend\\retrieve.py"
+            ],
+            "内容": "search_detailed 不再回传 general_embedding 整列，quality_sim 改为库内计算后以标量过网（语义不变，删掉原列即可）；search_keyword 的 ORDER BY 补上 seq,id 全序以消除并列组的不确定排序",
+            "测试": "pytest tests 30 passed（改动前后一致）；本地/云端比对由 DIFFERENCES 变为连跑 3 次 IDENTICAL",
+            "回滚": "cd C:\\PersonalRAG; git checkout -- mcp/retrieve.py backend/retrieve.py（注意会同时撤销流量优化）"
+          },
+          "MCP接入": {
+            "状态": "2026-10-16 已接入并验证通过；DSH 与 Codex 两个客户端均指向云端库",
+            "实现": "客户端 args 改跑 C:\\PersonalRAG\\mcp\\server_cloud.py —— 它启动时自己建 SSH 隧道再加载原 server.py，四个工具实现未改",
+            "隧道模块": "C:\\PersonalRAG\\mcp\\cloud_tunnel.py（复用/就绪等待/退避重连/Windows Job Object 防孤儿）",
+            "关键点": "客户端配置里**刻意不注入 PERSONAL_RAG_DSN** —— 注入后 server_cloud 会认为调用方已指定数据库而跳过隧道，静默去连本地 5432 旧库",
+            "认证": "SSH 密钥 ~/.ssh/id_ed25519，已在 ECS authorized_keys 追加 personalrag-mcp@Goldenbanana（原 zjc@ASUS 那条保留未动）",
+            "凭据": "C:\\PersonalRAG\\mcp\\.cloud_credentials.json（已 gitignore、ACL 已收紧为 本机用户+SYSTEM）",
+            "配置改动": [
+              "~/.dsh/profiles/web/cordis.patch.yml（备份 .bak-cloud-mcp-20261015-230500）",
+              "~/.codex/config.toml（备份 .bak-cloud-mcp-20261015-230500；startup_timeout_sec 120→180，因隧道建立发生在 MCP 握手之前）"
+            ],
+            "验证": {
+              "单测": "pytest tests 30 passed",
+              "协议级": "用真实 MCP stdio 拉子进程跑 initialize / tools/list / 四工具，DSH 与 Codex 各自 PASS",
+              "实例签名": "TimeZone=Asia/Shanghai、shared_buffers=256MB、listen_addresses=localhost、max_connections=30、构建=Red Hat（本地容器分别为 Etc/UTC / 128MB / * / 100 / Debian），证明连的是云端而非本地",
+              "防孤儿": "TerminateProcess 强杀父进程后 +2s 端口已释放、无残留 ssh（test_orphan_guard.py）",
+              "断线自愈": "杀掉 ssh 后约 3s 自动重连、工具继续可用（test_tunnel_resilience.py）",
+              "结果等价": "与 git 原版逐字段比对 10 个查询，9 个完全一致；唯一差异是上一轮排序确定性修复的预期效果（并列组内 seq 74→49），非退化"
+            },
+            "单次检索流量": "网卡口径实测 84 KiB/次（接入时二次优化前为 118 KiB/次）。拆解：查询向量 21.2 KiB（入方向免费）+ 候选池标量 17.0 KiB + 正文 55.1 KiB（后两项计费）",
+            "报告": "C:\\personalrag-migrate\\.ops\\aliyun-db-migrate-20261015\\mcp-cloud-hookup.md",
+            "待办": "配置改动需重启 DSH / Codex 才生效；重启前当前会话仍由旧进程（连本地库）提供服务",
+            "切回本地": "args 改回 'server.py' 并在 env 补 PERSONAL_RAG_DSN=postgresql://personal_rag_app:password@127.0.0.1:5432/personal_rag，或直接恢复上述 .bak-cloud-mcp-20261015-230500 备份"
+          },
+          "遗留": [
+            "本地库与云端库为两份完整副本，会随导入再次分叉；日常用本地，需要时用 sync-to-cloud.cmd（只往上传，方向免费）",
+            "batch_import.py 的 stage_embed 仍以 embedding_detailed 覆盖率判断整会话是否跑向量，而 general 阶段排在其后，新导入会话仍会「有画像、无画像向量」，需补跑",
+            "measured_e2e 未复测全库 pg_restore 恢复演练，仅做了差集插入与指纹核对"
+          ],
+          "范围说明": "本次仅新增 57 行 embedding_general、安装监控组件与脚本；未改动 httpd / frps / cloudflared / mysqli / mahjong / hysteria2 / dnstt / Tailscale 配置、防火墙策略、ssh 配置或安全组"
+        },
+        {
+          "名称": "Mahjong-DQN 川麻网站",
+          "公网访问": "https://mahjong.191226269.xyz",
+          "systemd服务": "mahjong.service（部署记录）",
+          "当前发布": "20261010-e16e901",
+          "前端目录": "/opt/mahjong/releases/20261010-e16e901/vendor/zorrofox/frontend",
+          "数据路径": {
+            "SQLite": "/var/lib/mahjong/mahjong.sqlite3",
+            "头像": "/var/lib/mahjong/avatars"
+          },
+          "发布记录": "C:\\Users\\茶鸣拾贰率\\.codex\\worktrees\\playful-cloud-frontend\\Mahjong-DQN\\docs\\handoff\\start_game_release_20261011.md",
+          "发布证据": "C:\\Users\\茶鸣拾贰率\\.codex\\worktrees\\playful-cloud-frontend\\Mahjong-DQN\\.planning\\start-game-release-20261010\\deployment-report.json",
+          "回滚版本": "/opt/mahjong/releases/20261010-ff979e9（历史发布记录保留，服务器本次未登录核实）",
+          "发布前备份": "/var/lib/mahjong/backups/start-game-20261010/pre-cutover/backup-20261010T154437Z-4c8498e0（部署记录）",
+          "最近核验": {
+            "时间": "2026-10-15T14:59:03+08:00",
+            "健康接口": "GET /api/health → 200，status=ok",
+            "能力接口": "GET /api/capabilities → 200；前端目录指向 20261010-e16e901",
+            "规则": "完整川麻：换三张、定缺、骰子、碰、杠；不支持吃",
+            "DQN": "dqn_v5_available=false，full_rules_not_adapted",
+            "页面入口": "/index.html → 303",
+            "范围": "未建房、登录或进行对局；未重新验证账号数据、备份恢复或长期稳定性"
+          }
+        }
+      ],
+      "最近核验": {
+        "时间": "2026-10-15T22:20:00+08:00",
+        "SSH": "root 密码认证登录成功；服务端 PasswordAuthentication=yes、PubkeyAuthentication=yes、PermitRootLogin=yes",
+        "WordPress公网HTTP": 200,
+        "范围": "本次为 PersonalRAG 数据库迁移：只读探查＋新增 57 行 embedding_general＋安装 vnstat/nftables 计数/guard 脚本；未改密码、密钥、sshd、httpd、frps、cloudflared、安全组或防火墙策略",
+        "systemd": "frps、httpd、cloudflared、postgresql-18、vnstat、personalrag-traffic-accounting 均 active",
+        "frp SSH入口": "127.0.0.1:6000 正在监听",
+        "PostgreSQL": "18.6 运行中，仅监听 127.0.0.1:5432（0.0.0.0 未监听，确认无公网暴露）",
+        "磁盘": "/dev/vda3 40G 已用 14G，可用 24G"
+      },
+      "系统概况": {
+        "发行版": "Alibaba Cloud Linux 3 (OpenAnolis Edition)",
+        "内核": "5.10.134-17.2.al8.x86_64",
+        "实例规格": "ecs.e-c1m1.large（2 vCPU / 1.9 GiB）",
+        "地域": "cn-chengdu",
+        "实例ID": "i-2vc0k4r5wnt5j9rhqxam",
+        "私网IP": "172.18.55.184",
+        "网卡规格": "instance/max-netbw-egress = 204800（200 Mbps）",
+        "连续运行": "自 2026-08-24 01:02 起（本次核验时已 52 天）",
+        "核验时间": "2026-10-15T22:20:00+08:00"
+      },
+      "ssh认证": {
+        "用户": "root",
+        "密码": "2756611628@Qq",
+        "认证方式": "SSH 密码认证",
+        "保存授权": "2026-10-15 用户明确允许保存到本地 device.json",
+        "最近验证": "2026-10-15 root 密码登录成功"
+      },
+      "历史连接记录": {
+        "来源": "原目录备份 device.json.bak-personalrag-20261015-023051",
+        "原SSH说明": "无密码，凭密钥（本机 ~/.ssh/id_ed25519 → root@8.156.91.160）",
+        "状态": "原说明中的免密登录目前未通过；保留为密钥方式的历史记录，不据一次失败删除"
+      },
+      "连接方式": [
+        {
+          "方式": "公网IPv4 SSH密码登录",
+          "目标": "8.156.91.160:22",
+          "命令": "ssh root@8.156.91.160",
+          "认证": "见 ssh认证/密码",
+          "状态": "2026-10-15 实际登录成功"
+        },
+        {
+          "方式": "公网IPv4 SSH密钥登录",
+          "目标": "8.156.91.160:22",
+          "命令": "ssh -i ~/.ssh/id_ed25519 root@8.156.91.160",
+          "认证": "本机 ~/.ssh/id_ed25519",
+          "状态": "保留；2026-10-15本机该密钥认证被拒绝，服务端PubkeyAuthentication=yes，具体授权状态待核查"
+        }
+      ],
+      "PersonalRAG事件入库HTTPS接口": {
+        "最后核验": "2026-10-16",
+        "入口": "https://191226269.xyz/personalrag/ingest",
+        "服务": "personalrag-ingest.service",
+        "监听": "127.0.0.1:18872",
+        "数据库角色": "personalrag_ingest（专用入库权限，非超级用户，不能删除不可变归档）",
+        "鉴权": "独立Bearer令牌；云端仅保存SHA256；现有personalrag_https查询角色仍只读",
+        "模型": "云端不加载模型库；本机主动通过HTTPS上传",
+        "备份": "/root/personalrag-ingest-deploy-20261016/before-ingest.dump（部署前备份，root-only）",
+        "实测": "HTTPS原文及向量/画像写入、重复提交、过期版本拒绝、关键词/语义召回、全文/画像回读、读写令牌隔离均通过",
+        "边界": "仅本次实测；长期稳定性与完整历史模型处理未完成",
+        "原文回填核验": "226个本地DSH会话：当前版本/代次、压缩归档SHA256和原文SHA256全部匹配；485175358字节"
+      }
+    },
+    "ubuntu": {
+      "ip": {
+        "局域网": "DHCP，不确定",
+        "tailscale": {
+          "ipv4": "100.111.22.21",
+          "ipv6": "fd7a:115c:a1e0::6e01:16d8",
+          "magicDNS": "ubuntu.tail240940.ts.net"
+        }
+      },
+      "设备识别": {
+        "Tailscale HostName": "zjc-ASUS-TUF-Gaming-A15-FA507NV-FA507NV",
+        "说明": "来自本机 Tailscale 对等节点记录"
+      },
+      "最近核验": {
+        "时间": "2026-10-15T14:59:03+08:00",
+        "Tailscale": "offline（仅表示该节点在本次观测时离线）",
+        "Tailscale最后在线": "2026-10-15T13:28:54+08:00",
+        "SSH": "100.111.22.21:22 连接超时",
+        "限制": "未登录，不推断系统、项目和服务的当前运行状态"
+      },
+      "连接方式": [
+        {
+          "方式": "Tailscale IPv4 SSH",
+          "目标": "100.111.22.21:22",
+          "用户": "待设备恢复后确认",
+          "状态": "保留；2026-10-15节点离线且连接超时，不作为删除设备或路径的依据"
+        },
+        {
+          "方式": "Tailscale MagicDNS",
+          "目标": "ubuntu.tail240940.ts.net",
+          "状态": "保留；Tailscale登记名称，离线时未验证连接"
+        },
+        {
+          "方式": "Tailscale IPv6",
+          "目标": "fd7a:115c:a1e0::6e01:16d8",
+          "状态": "保留；地址来自目录及Tailscale，尚未验证端到端连接"
+        },
+        {
+          "方式": "局域网连接",
+          "目标": "DHCP地址待重新确认",
+          "状态": "保留原有局域网路径；地址未知不表示该连接方式不可用"
+        }
+      ]
+    },
+    "Goldenbanana": {
+      "角色": "本机 Windows 工作站",
+      "PersonalRAG": {
+        "项目目录": "C:\\PersonalRAG",
+        "HTTPS数据访问": {
+          "核验日期": "2026-10-16",
+          "架构": "本机stdio MCP统一编排：CPU向量化、HTTPS召回、RRF融合、HTTPS取选中正文、GPU重排；云端只查数据",
+          "入口": "C:\\PersonalRAG\\mcp\\server_api.py",
+          "API": "https://191226269.xyz/personalrag/api",
+          "认证文件": "C:\\PersonalRAG\\mcp\\.api_credentials.json；ACL仅当前用户和SYSTEM，无令牌写入Codex配置",
+          "客户端状态": "已切换Codex配置入口，其他参数和GPU环境保留；当前旧常驻连接需重启Codex后更新",
+          "回退备份": "C:\\Users\\茶鸣拾贰率\\.codex\\config.toml.bak-https-query-20261016-134943",
+          "验证": "65项测试通过，实际新MCP四工具/GPU/HTTPS与SQL结果对照通过；验证进程已退出",
+          "网络边界": "本机无需公网IP、不监听入站模型接口、不运行回调Agent；日常查询不建SSH隧道"
+        },
+        "模型重排": {
+          "核验日期": "2026-10-16",
+          "范围": "本地 MCP 检索代码和 HuggingFace 模型缓存；旧常驻 MCP 进程需重启生效，客户端配置未改",
+          "模型": "BAAI/bge-reranker-v2-m3",
+          "链路": "向量与关键词独立召回、RRF去重融合、默认30候选模型重排、同轮最多2条；画像独立",
+          "默认设备": "CPU；可配置 cuda:0，当前 Codex 环境隐藏 GPU，启用时需同时设置 CUDA_VISIBLE_DEVICES=0",
+          "CPU样本": "2线程、长度1024、batch4：三次历史查询96.1至100.1秒，两模型进程工作集约4.3GiB，峰值约4.5GiB",
+          "GPU样本": "RTX4060 Laptop；向量化保持CPU，重排用GPU：三次历史查询5.0至5.6秒，测试结束前模型已分配显存约2.1GiB（非峰值）",
+          "验证": "51项测试通过，含15项真实云数据库测试；中英文相关性小样本、CPU与GPU实际MCP返回均验证。未进行整体标注召回率评测，未测游戏帧率",
+          "报告": "C:\\PersonalRAG\\docs\\validation\\2026-10-16-reranking.md"
+        },
+        "迁移与操作记录": "C:\\personalrag-migrate",
+        "MCP": {
+          "客户端": "Codex",
+          "名称": "personalrag",
+          "传输": "stdio",
+          "配置": "C:\\Users\\茶鸣拾贰率\\.codex\\config.toml",
+          "启动": "Codex 管理 Python 子进程",
+          "检索设备": "Codex向量化CPU、重排cuda:0；DSH Web向量化及重排cuda:0；按需加载",
+          "启动命令": "C:\\PersonalRAG\\backend\\.venv\\Scripts\\python.exe -B C:\\PersonalRAG\\mcp\\server_api.py",
+          "工具": [
+            "search",
+            "fetch_turn",
+            "get_profile",
+            "stats"
+          ],
+          "超时秒": {
+            "启动": 120,
+            "工具": 180
+          },
+          "最近核验": "2026-10-16：Codex实际MCP混合检索成功，30候选GPU重排7.872秒；两客户端配置验收均实测模型和权重位于cuda:0",
+          "DSH网页端": {
+            "核验日期": "2026-10-16",
+            "配置": "C:\\Users\\茶鸣拾贰率\\.dsh\\profiles\\web\\cordis.patch.yml",
+            "传输": "stdio；数据访问HTTPS",
+            "入口": "C:/PersonalRAG/mcp/server_api.py",
+            "状态": "已从旧server_cloud.py切换；运行中Web进程已自动热重载",
+            "实测": "四工具发现；30候选混合检索34.249秒，重排8.527秒；运行中DSH自动热重载",
+            "设备": "向量化cuda:0；重排cuda:0（模型和参数设备断言通过）",
+            "凭据": "复用已有受限.api_credentials.json，未在DSH配置写入令牌",
+            "报告": "C:\\PersonalRAG\\docs\\validation\\2026-10-16-dsh-web-mcp-repair.md",
+            "边界": "SDK完整检索和真实CUDA权重已验证；用户DSH界面自身发起的修复后工具调用尚未观察；非长期稳定性保证",
+            "GPU重排报告": "C:\\PersonalRAG\\docs\\validation\\2026-10-16-codex-dsh-gpu-rerank.md",
+            "启动器": "C:/PersonalRAG/mcp/.venv/Scripts/pythonw.exe",
+            "后台核验日期": "2026-10-17",
+            "后台状态": "无控制台启动器已自动热重载；stdio/HTTPS完整混合检索验收通过"
+          }
+        },
+        "数据库": {
+          "容器": "pgrg",
+          "数据卷": "pgrg-data",
+          "地址": "127.0.0.1:5432",
+          "数据库": "personal_rag",
+          "重启策略": "unless-stopped",
+          "资源上限": "2 CPU / 1 GiB 内存 / 不额外使用 swap",
+          "镜像": "pgvector/pgvector:pg18",
+          "Docker引擎": "29.7.2",
+          "迁移包挂载": "C:\\personalrag-migrate → /stage（bind mount）",
+          "最近核验": {
+            "时间": "2026-10-15T14:59:03+08:00",
+            "容器": "running",
+            "PostgreSQL": "pg_isready 接受连接；只读 SQL 与 MCP 计数一致",
+            "端口绑定": "127.0.0.1:5432",
+            "计数": {
+              "session": 66,
+              "raw_data": 20430,
+              "standardized_request_data": 6979,
+              "standardized_response_data": 6442,
+              "items_knowledge": 553,
+              "session_general": 66,
+              "embedding_detailed": 16590,
+              "embedding_general": 66
+            }
+          }
+        },
+        "Docker自启": "当前用户登录后启动 Docker Desktop",
+        "更新日期": "2026-10-15",
+        "性能说明": "MCP 查询使用 CPU 并限制 2 线程；Docker/WSL 冷启动及检索后工作集约 2.9 GiB（含缓存），未验证游戏帧率；数据库限制不等于 Docker 总内存限制",
+        "近期操作": [
+          {
+            "日期": "2026-10-13",
+            "操作": "Ubuntu 导出完整迁移包；现存 README 和 SHA256SUMS 为导出证据"
+          },
+          {
+            "日期": "2026-10-14 至 2026-10-15",
+            "操作": "Windows 恢复 Docker/pgvector；注册 Codex MCP；启用 Docker 用户登录自启并设置数据库资源上限"
+          },
+          {
+            "日期": "2026-10-14 至 2026-10-15",
+            "操作": "导入 8 个非空 Windows DSH 会话、37 轮，新增 2790 个详细向量块；另 3 个空会话未生成正文",
+            "报告": "C:\\personalrag-migrate\\.ops\\windows-import-20261014\\report.md"
+          },
+          {
+            "日期": "2026-10-15",
+            "操作": "生成上述 8 个会话的画像及画像向量；随后并入 Linux 补丁，新增 8 个缺失画像、57 个缺失画像向量，最终全库 66/66",
+            "报告": "C:\\personalrag-migrate\\.ops\\linux-profile-patch-20261015\\report.md"
+          }
+        ],
+        "备份记录": {
+          "Windows导入后": "C:\\personalrag-migrate\\.ops\\windows-import-20261014\\backups\\personal_rag-20261015-000013.dump",
+          "Windows画像后": "C:\\personalrag-migrate\\.ops\\windows-profile-20261015\\backups\\personal_rag-20261015-012139.dump",
+          "Linux补丁前后表备份目录": "C:\\personalrag-migrate\\.ops\\linux-profile-patch-20261015\\backups",
+          "验证边界": "已有报告记录摘要/目录检查；本次未重新执行全库恢复演练"
+        },
+        "待核实事项": [
+          "Linux 补丁报告指出 batch_import.py 的画像生成/向量阶段顺序可能使后续导入漏建画像向量；补丁只补数据，未修根因代码。",
+          "当前 git status 有三个暂存删除：backend/README.md、backend/chunkk.py、backend/test.json；本次只记录，未恢复或修改。",
+          "Docker 历次运行时隔离目录仍有残留，本次未删除：AppData/Local/Docker/run.personalrag-recovery-20261014-222158；AppData/Local/docker-secrets-engine.personalrag-registration-20261015-023214。"
+        ]
+      },
+      "环境": {
+        "系统": "Windows 11 专业版，10.0.26100",
+        "CPU": "AMD Ryzen 7 7735H，8 核 16 线程",
+        "GPU": [
+          "AMD Radeon(TM) Graphics",
+          "NVIDIA GeForce RTX 4060 Laptop GPU"
+        ],
+        "系统可见内存GiB": 15.2,
+        "当前Codex命令行": "PowerShell 7.6.5 / Core（本次执行会话；不是所有终端的全局默认值）",
+        "Python": "C:\\PersonalRAG\\backend\\.venv\\Scripts\\python.exe（项目虚拟环境，含 psycopg 与 sentence-transformers）",
+        "paramiko": "E:\\anaconda\\python.exe 已装 paramiko 5.0.0，用于免 sshpass 的 SSH/SFTP 自动化",
+        "核验时间": "2026-10-15T22:20:00+08:00"
+      },
+      "ip": {
+        "tailscale": {
+          "ipv4": "100.92.140.85",
+          "ipv6": "fd7a:115c:a1e0::8c01:8cd6",
+          "状态": "online"
+        },
+        "WLAN": "10.202.146.161（本次快照，可能随网络变化）"
+      },
+      "嘉立创EDA": {
+        "客户端": "C:\\Program Files\\lceda-pro\\lceda-pro.exe",
+        "版本": "4.1.71",
+        "工程根目录": "C:\\Users\\茶鸣拾贰率\\Documents\\LCEDA-Pro\\projects",
+        "MCP": {
+          "名称": "jlceda",
+          "当前实现": "@jlcextention/mcp-server 1.4.0（C:\\jlcmcp）",
+          "启动": "C:\\Program Files\\nodejs\\node.exe C:/jlcmcp/dist/index.js",
+          "配置": "C:\\Users\\茶鸣拾贰率\\.codex\\config.toml",
+          "状态": "enabled；easyeda-bridge health=ok；当前 edaConnected=false、窗口数0",
+          "历史说明": "已由客户端内置 --mcp stdio 切换为本地 Node/Bridge 实现；当前配置以本项为准"
+        },
+        "最近工程操作": {
+          "工程": "mcp-test",
+          "工程UUID": "66626e57be92e4dbb61a97f250a12ce3cd6a5499930335803566bc6679b8d0bd",
+          "板子": "Board1_1",
+          "日期": "2026-10-14",
+          "结果": "保留原44个器件和已购SRD-05VDC-SL-C继电器，新增6只电阻；80×100mm；双面2oz；COM/NO干触点负载线路100mil",
+          "历史验证": "verification-final.json 中原理图/PCB均50器件，schematicDrc=[]、pcbDrc=[]、pcbPassed=true、网表差异0；本次只核对已保存证据，未重跑DRC",
+          "实板限制": "电容规格、风扇启动电流、满载温升和5V稳定性尚未实测",
+          "证据": "C:\\Users\\茶鸣拾贰率\\Documents\\LCEDA-Pro\\projects\\.mcp-work\\2026-10-14-power-loads\\verification-final.json",
+          "工程备份": "C:\\Users\\茶鸣拾贰率\\Documents\\LCEDA-Pro\\projects\\.mcp-work\\2026-10-14-power-loads\\mcp-test-power-loads.zip",
+          "接线说明": "C:\\Users\\茶鸣拾贰率\\Documents\\LCEDA-Pro\\projects\\.mcp-work\\2026-10-14-power-loads\\wiring-and-validation.md",
+          "采购BOM": "C:\\Users\\茶鸣拾贰率\\Documents\\LCEDA-Pro\\projects\\outputs\\01a13551-c32b-76a0-8f93-69521df672c4\\Board1_1-自购焊接BOM.xlsx"
+        },
+        "核验时间": "2026-10-15T14:59:03+08:00"
+      },
+      "Mahjong-DQN开发": {
+        "主仓库": "E:\\Mahjong-DQN",
+        "正式发布记录工作树": "C:\\Users\\茶鸣拾贰率\\.codex\\worktrees\\playful-cloud-frontend\\Mahjong-DQN",
+        "本地隔离预览工作树": "C:\\Users\\茶鸣拾贰率\\.codex\\worktrees\\neo-brutalist-preview\\Mahjong-DQN",
+        "说明": "10月8日先做本地预览，10月10日后经用户授权上线；8774/8778 为历史预览端口，本次未检查预览进程"
+      },
+      "PersonalRAG事件入库": {
+        "最后核验": "2026-10-17",
+        "模式": "非驻留：DSH轮次完成后通知，Windows启动短任务",
+        "项目目录": "C:\\PersonalRAG",
+        "上传任务": "PersonalRAG-DSH-Upload",
+        "模型任务": "PersonalRAG-DSH-Models",
+        "模型频率": "每小时尝试，用户和会话静默300秒才处理，否则退出",
+        "模型位置": "本机RTX4060Laptop GPU",
+        "支持日志": "session.v4.jsonl.zstd；兼容v3和旧版",
+        "状态": "任务已安装；226个本地DSH会话原文回填及云端哈希核验完成，待上传0；历史向量/画像仍按小时空闲处理；原生插件需对应DSH下次正常启动",
+        "DSH配置": [
+          "dsh-tui/cordis.patch.yml",
+          "desktop/cordis.patch.yml",
+          "web/cordis.patch.yml"
+        ],
+        "本机凭据": "C:\\PersonalRAG\\ingest\\.credentials.json（仅当前用户和SYSTEM；不写Codex配置）",
+        "队列": "C:\\PersonalRAG\\ingest\\state\\spool.sqlite3",
+        "原文回填核验": {
+          "日期": "2026-10-16",
+          "会话数": 226,
+          "原文字节": 485175358,
+          "待上传": 0,
+          "哈希不一致": 0
+        },
+        "模型启动器": "C:/PersonalRAG/backend/.venv/Scripts/pythonw.exe；保留CREATE_NO_WINDOW，日志写文件",
+        "关机恢复": "spool.sqlite3保存已提交轮次/完整画像进度，云端可核对；未完成计算批次/整份画像下次重算；开机登录后仍按小时及空闲条件尝试",
+        "后台验证": "26项相关测试通过；真实Worker合成子进程无控制台；DSH pythonw完整检索通过；原瞬时窗口来源未复现",
+        "后台恢复报告": "C:\\PersonalRAG\\docs\\validation\\2026-10-17-background-and-restart.md"
+      }
+    }
+  },
+  "公网访问速查": [
+    {
+      "qBittorrent": "https://qbit.191226269.xyz"
+    },
+    {
+      "Portainer": "https://portainer.191226269.xyz"
+    },
+    {
+      "OpenList网盘": "https://openlist.191226269.xyz"
+    },
+    {
+      "AriaNg面板": "https://aria.191226269.xyz"
+    },
+    {
+      "aria2 RPC": "https://191226269.xyz/jsonrpc（secret: 712534e60696042c）"
+    },
+    {
+      "N1 SSH": "本机执行 ssh n1"
+    },
+    {
+      "WordPress": "https://191226269.xyz"
+    },
+    {
+      "麻将大厅": "https://mahjong.191226269.xyz"
+    }
+  ],
+  "PersonalRAG速查": {
+    "当前状态": "MCP（DSH 与 Codex）已切到**云端库**，2026-10-16 接入并验证通过；需重启客户端生效",
+    "本机库": "Docker 容器 pgrg → 127.0.0.1:5432，库 personal_rag（现作为本地副本与回退选项）",
+    "云端库": "ECS 8.156.91.160 → 127.0.0.1:5432，库 personal_rag（不对外开放，走 SSH 隧道）",
+    "云端隧道": "127.0.0.1:15432 → ECS 127.0.0.1:5432；由 MCP 进程自己建立（cloud_tunnel.py），也可手工跑 tunnel-cloud.cmd",
+    "MCP入口": "C:\\PersonalRAG\\mcp\\server_cloud.py（自建隧道后加载原 server.py）",
+    "云端凭据": "C:\\PersonalRAG\\mcp\\.cloud_credentials.json（已 gitignore、ACL 已收紧）",
+    "SSH密钥": "C:\\Users\\茶鸣拾贰率\\.ssh\\id_ed25519（已在 ECS authorized_keys 授权）",
+    "用云端启动MCP": "C:\\PersonalRAG\\mcp\\run-cloud.cmd",
+    "看云端流量": "C:\\PersonalRAG\\mcp\\traffic-check.cmd",
+    "同步到云端": "C:\\PersonalRAG\\mcp\\sync-to-cloud.cmd（只往上传，入方向免费）",
+    "计费提醒": "阿里云只对出方向计费；单次检索网卡口径实测 84 KiB。勿把 pg_dump 下载到本地（145 MB/次出方向）",
+    "DSH事件入库": {
+      "模式": "事件唤起上传；每小时空闲时本机GPU加工；任务处理完退出",
+      "入口": "https://191226269.xyz/personalrag/ingest",
+      "查状态": "C:\\PersonalRAG\\backend\\.venv\\Scripts\\python.exe -B C:\\PersonalRAG\\ingest\\runner.py --status",
+      "说明": "C:\\PersonalRAG\\ingest\\README.md"
+    },
+    "DSH网页MCP": "Web profile 使用 server_api.py；stdio连接本机MCP，HTTPS查询云端；2026-10-16修复并自动热重载",
+    "GPU重排": "Codex与DSH Web均设置PERSONALRAG_RERANK_DEVICE=cuda:0，2026-10-16已实测；两端为独立模型进程"
+  },
+  "备注": {
+    "公网入口": "仅 8.156.91.160 的 22/443/11451 及域名（CF代理）；其余端口被安全组拦截",
+    "SSH隧道原理": "历史方案：公网 SSH 经阿里云无 SNI 的443 CONNECT隧道；旧记录提及 ~/.ssh/n1-tunnel.py。本机当前脚本和 ~/.ssh/config 均不存在，未复验历史 SNI 拦截结论。当前可通过 Tailscale+已有密码登录 N1。",
+    "socks5": "frp 6001 仅内网使用，未暴露公网（无认证开放代理风险）",
+    "安全提醒": "N1 SSH 密码为弱密码 password，建议修改；frps token 同为 password",
+    "aria2状态": "2026-10-15：AriaNg 页面 HTTP 200，但 aria2 本机6800不监听，公网 /jsonrpc 返回502。"
+  },
+  "目录核验": {
+    "时间": "2026-10-15T14:59:03+08:00",
+    "时区": "Asia/Hong_Kong",
+    "近期范围": "2026-09-15 至 2026-10-15；设备相关操作，并参考较早网络调试记录",
+    "资料范围": "检查本地近期106个Codex记录文件，含99个子代理记录、7个主会话（含本次）；可见聊天摘要、PersonalRAG检索及本地导入/发布/板卡证据用于补充",
+    "核验方式": "本机配置/容器/SQL/Tailscale、N1只读SSH和DNS查询、curl公网HTTP检查、已有操作报告比对",
+    "覆盖限制": "不能涵盖没有留存记录的手工操作；阿里云SSH未通过、Ubuntu离线、EDA无活动窗口；各条目标明历史证据或本次实测",
+    "修改范围": "仅更新本设备目录并新增目录备份及无凭据审计报告；未改远程配置、网络配置或项目源码",
+    "原目录备份": "C:\\Users\\茶鸣拾贰率\\Desktop\\device.json.bak-audit-20261015-145903",
+    "核验报告": "C:\\personalrag-migrate\\.ops\\device-audit-20261015\\report.md",
+    "补充核验": {
+      "时间": "2026-10-15T15:06:43+08:00",
+      "内容": "阿里云密码SSH登录验证成功；此前失败仅为密钥登录。ssh n1当前没有本机别名；Tailscale别名的等价参数已用ssh -G -o验证展开，未写入SSH配置。",
+      "补充前备份": "C:\\Users\\茶鸣拾贰率\\Desktop\\device.json.bak-ssh-check-20261015-150643"
+    },
+    "密码保存": {
+      "时间": "2026-10-15T15:15:16+08:00",
+      "范围": "按用户明确授权，仅将阿里云 SSH 密码保存到本地 device.json 的设备/阿里云服务器/ssh认证/密码字段",
+      "保存前备份": "C:\\Users\\茶鸣拾贰率\\Desktop\\device.json.bak-before-cloud-password-20261015-151516"
+    },
+    "维护目标确认": {
+      "时间": "2026-10-15T15:20:50+08:00",
+      "说明": "按用户要求以连接方式覆盖为目标，保留冗余路径；补回原目录历史SSH和MagicDNS说明，新增分路径状态。没有删除设备或路径，没有改动本机或远程连接配置。",
+      "修改前备份": "C:\\Users\\茶鸣拾贰率\\Desktop\\device.json.bak-connection-inventory-20261015-152050"
+    },
+    "immortalwrt移除": {
+      "时间": "2026-10-15T18:12:00+08:00",
+      "范围": "按用户明确要求删除 N1 上的 immortalwrt 服务：停容器、删容器、删镜像、删 macvlan 网络 macnet，并清掉 /etc/resolv.pre-tailscale-backup.conf 里的 192.168.2.98 残留 DNS 行。未改动 N1 其他容器、mihomo/frpc/tailscale、路由、iptables 与公网映射。",
+      "删除前快照": "N1:/root/immortalwrt-removal-20261015-101200（含镜像与 rootfs 全量 tar.gz、inspect、restore.sh、SHA256SUMS）",
+      "删除后核验": "docker ps -a / docker images / docker network ls 均已无 immortalwrt/macnet；局域网侧 ping 与 arping 192.168.2.98 无响应；同机 4 个 Web 服务回环 HTTP 200；公网 qbit/portainer/openlist/aria 子域、主域、mahjong 子域全部 HTTP 200。",
+      "修改前备份": "C:\\Users\\茶鸣拾贰率\\Desktop\\device.json.bak-immortalwrt-removal-20261015-181336"
+    },
+    "N1文件系统维修": {
+      "时间": "2026-10-15T18:12 至 19:30",
+      "说明": "删除操作后 N1 发生异常断电，eMMC 根分区损坏并转只读；已完成 e2fsck 修复、fstab 根设备纠正、initrd 补齐 fsck.ext4 并执行了一次完整开机 fsck。详情见 设备/N1-Armbian/文件系统维修记录。",
+      "备份": "C:\\Users\\茶鸣拾贰率\\Desktop\\n1-immortalwrt-removal\\backup-data-20261015-1845（etc 全量、root、opt、docker volumes、/boot 分区 tar）",
+      "修改前备份": "C:\\Users\\茶鸣拾贰率\\Desktop\\device.json.bak-immortalwrt-removal-20261015-181336"
+    },
+    "PersonalRAG迁移阿里云": {
+      "时间": "2026-10-15T21:00 至 22:20",
+      "范围": "把 Windows Docker 容器 pgrg 的 personal_rag 迁到阿里云 ECS 原生 PostgreSQL 18.6。先逐表指纹比对，确认差异仅为 embedding_general 缺 57 行；只上传 808,323 B 差集（入方向不计费），未整库重传。另修正单次检索 908KB→205KB 的出方向浪费，并部署流量监控。",
+      "差异基线": "迁移前云端 7 张表指纹已与本机一致，仅 embedding_general 为 9 行（本机 66 行）",
+      "指纹核对": "迁移后 8 张表全部一致；参照完整性异常项全为 0",
+      "云端备份": "/root/personalrag-db-migrate-20261015/backups/pre_delta_full.dump（144,804,215 B）、pre_delta_profiles.dump（86,184 B）",
+      "代码改动": "C:\\PersonalRAG\\mcp\\retrieve.py、backend\\retrieve.py：search_detailed 不再回传 1024 维 general_embedding（quality_sim 改库内算，语义不变）；search_keyword 的 ORDER BY 补 seq,id 全序",
+      "流量结论": "入方向免费，出方向计费。迁移动静近乎为零；后续每次检索修复后 205 KB、修复前 908 KB。背景流量约 3.5 GiB/月。按每天 200 次检索估算月耗约 4.7 GiB，占 220 GB 免费额度的 2.1%，无需升配或改架构。",
+      "远程改动清单": [
+        "新增 57 行 public.embedding_general",
+        "安装 vnstat（enable --now，库 /var/lib/vnstat/vnstat.db）",
+        "新增 /usr/local/bin/personalrag-traffic-guard",
+        "新增 /usr/local/bin/personalrag-traffic-accounting + personalrag-traffic-accounting.service（enabled）",
+        "新增 crontab：17 8 * * * /usr/local/bin/personalrag-traffic-guard --cron",
+        "新增目录 /root/personalrag-db-migrate-20261015（迁移包与备份）"
+      ],
+      "未改动": "httpd / frps / cloudflared / mysqld / mahjong / hysteria2 / dnstt / Tailscale 配置、iptables 与 nftables 过滤策略（仅新增计数钩子，policy accept）、ssh 配置、ECS 安全组、postgresql.conf（listen_addresses 保持 localhost）",
+      "回滚": "数据：sudo -u postgres pg_restore -d personal_rag --clean --if-exists --no-owner --role=personal_rag_admin /root/personalrag-db-migrate-20261015/backups/pre_delta_full.dump；代码：cd C:\\PersonalRAG; git checkout -- mcp/retrieve.py backend/retrieve.py",
+      "报告": "C:\\personalrag-migrate\\.ops\\aliyun-db-migrate-20261015\\report.md（技术细节）与 traffic-report.html（流量规划可视化）",
+      "修改前备份": "C:\\Users\\茶鸣拾贰率\\Desktop\\device.json.bak-aliyun-db-migrate-20261015-221600"
+    }
+  },
+  "维护原则": {
+    "核心目标": "全量记录所有设备，以及已知或有依据的可能连接方式；保留有用途的冗余、备用路径和不同认证方式。",
+    "更新方式": "优先补充和标注状态，不因去重、精简或推荐某一条路径而覆盖其他路径。",
+    "删除条件": "只有证据确认设备已弃用或路径已失效且不再有用途时才删除；删除前核对其他网络环境、认证方式和前置条件。",
+    "不作为删除依据": [
+      "设备暂时离线或休眠",
+      "一次连接超时或认证失败",
+      "当前网络不可达",
+      "缺少本机配置、脚本、凭据或权限",
+      "尚未进行验证",
+      "已有另一条可用路径"
+    ],
+    "记录要求": "区分已验证可用、条件不满足、当前失败、待验证和已确认失效；记录网络前提、认证方式及核验时间。保留历史地址、命令和隧道方案并标明历史状态。",
+    "凭据授权": "按用户已明确授权，可在本地目录保存连接所需密码；不在核验报告或工具输出中复述密码。"
+  }
+}

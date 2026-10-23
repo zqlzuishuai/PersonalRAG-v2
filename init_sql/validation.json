@@ -1,0 +1,23 @@
+{
+  "validated_at": "2026-10-21T20:33:10.700841+08:00",
+  "environment": "isolated local Docker; no network; tmpfs data; not cloud deployment",
+  "results": {
+    "00_create_database.sql": "passed",
+    "01_schema.sql": "passed",
+    "03_verify.sql": "passed",
+    "second_schema_install": "correctly refused; no overwrite",
+    "wrong_database": "correctly refused",
+    "repeat_bootstrap": "passed"
+  },
+  "database": {
+    "postgres_version": "18.6 (Debian 18.6-1.pgdg12+2)",
+    "pgvector_version": "0.8.7",
+    "core_tables": 10,
+    "rls_forced_tables": 10,
+    "remaining_users": 0
+  },
+  "assertions_in_verification": 26,
+  "cloud_sql_executed": false,
+  "temporary_container_removed": true,
+  "independent_read_only_review": "no blocking findings; reviewer did not execute SQL"
+}
