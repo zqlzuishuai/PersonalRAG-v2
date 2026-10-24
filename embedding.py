@@ -8,9 +8,9 @@ from config import required_env
 
 def embed_texts(texts: list[str], config: dict) -> list[list[float]]:
     """每个输入片段对应一个 1024 维向量，返回顺序与输入一致。"""
-    if config.get("provider") != "aliyun" or config.get("dimensions") != 1024:
+    if config.get("provider") != "aliyun" or config.get("dimensions") != 1024: # type: ignore
         raise ValueError("当前只支持阿里云 1024 维向量")
-    model = config.get("model")
+    model = config.get("model") # type: ignore
     if not isinstance(model, str) or not model.strip():
         raise ValueError("embedding 配置缺少模型名称")
     if not texts:
@@ -25,7 +25,7 @@ def embed_texts(texts: list[str], config: dict) -> list[list[float]]:
         # 发送原始字符串，避免用 OpenAI 的 tokenizer 编码阿里云模型输入。
         check_embedding_ctx_length=False,
         chunk_size=10,
-        request_timeout=60,
+        request_timeout=60, # type: ignore
         max_retries=2,
     )
     vectors = client.embed_documents(texts)
