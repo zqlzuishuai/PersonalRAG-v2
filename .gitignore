@@ -7,5 +7,7 @@ wheels/
 *.egg-info
 .env
 data/**
+**/.*/
+.workbuddy/
 # Virtual environments
 .venv
