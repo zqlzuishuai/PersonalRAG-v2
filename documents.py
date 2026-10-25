@@ -172,7 +172,7 @@ def upload_file(
 def main():
     """直接修改下方变量后运行此脚本，即可上传原文。"""
     settings = load_settings()
-    file_path = Path("C:/Users/茶鸣拾贰率/Desktop/3000字/实习报告.txt")
+    file_path = Path("C:/Users/茶鸣拾贰率/Desktop/毛概/复习资料/综合复习手册_完整版.md")
     user_a = UUID("db1e84a8-87c3-4b10-ab50-b56fc99e0a7c")
 
     # None 表示创建新资料；更新已有资料时，改为 UUID("已有资料的 document_id")。

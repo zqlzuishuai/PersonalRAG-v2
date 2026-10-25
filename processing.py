@@ -1,5 +1,4 @@
 import json
-import sys
 from uuid import UUID, uuid4
 
 from psycopg.types.json import Jsonb
@@ -177,9 +176,10 @@ def execute_processing_run(settings: Settings, user_id: UUID, run_id: UUID) -> b
 def main():
     settings = load_settings()
     user_id = UUID("db1e84a8-87c3-4b10-ab50-b56fc99e0a7c")
-    run_id = UUID("0fa106e0-cc47-4238-a58c-f19532b28144")
+    # run_id = UUID("0fa106e0-cc47-4238-a58c-f19532b28144")
     
-    version_id = UUID("d2007773-3720-4213-b22d-707b0bcc1552")
+    # version_id = UUID("d2007773-3720-4213-b22d-707b0bcc1552")
+    version_id = UUID("e42d100d-8d28-402b-bb7a-728458806b05") # 毛概
     processing_config = {
         "parser":{
             "mime_type": "text/plain",
@@ -187,13 +187,13 @@ def main():
         },
         "chunker":{
             "type":"RecursiveTextSplitter",
-            "chunk_size": 800,
-            "chunk_overlap": 120,
+            "chunk_size": settings.embedding_chunk_size,
+            "chunk_overlap": settings.embedding_chunk_overlap,
         },
         "embedding":{
-            "provider":"aliyun",
-            "model":"qwen3.7-text-embedding-flash",
-            "dimensions": 1024,
+            "provider":settings.embedding_provider,
+            "model":settings.embedding_model,
+            "dimensions": settings.embedding_dimensions,
         },
     }
 

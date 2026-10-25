@@ -10,6 +10,16 @@ class Settings:
     app_database_url: str = field(repr=False)
     auth_database_url: str = field(repr=False)
     raw_storage_dir: Path
+    embedding_provider: str
+    embedding_model: str
+    embedding_dimensions: int
+    embedding_chunk_size: int
+    embedding_chunk_overlap: int
+    # embedding_request_timeout: int = field(default=60)
+    embedding_api_key: str = field(repr=False)
+    rerank_provider: str
+    rerank_model: str = field(repr=False)
+    rerank_api_key: str = field(repr=False)
 
 def required_env(name: str) -> str:
     value = os.getenv(name,"").strip()
@@ -25,5 +35,14 @@ def load_settings() -> Settings:
         raw_storage_dir=Path(
             os.getenv("PERSONALRAG_RAW_STORAGE_DIR", "./data/raw")
         ).resolve(),
+        embedding_provider=required_env("PERSONALRAG_EMBEDDING_PROVIDER"),
+        embedding_model=required_env("PERSONALRAG_EMBEDDING_MODEL"),
+        embedding_dimensions=int(required_env("PERSONALRAG_EMBEDDING_DIMENSIONS")),
+        embedding_chunk_size=int(required_env("PERSONALRAG_EMBEDDING_CHUNK_SIZE")),
+        embedding_chunk_overlap=int(required_env("PERSONALRAG_EMBEDDING_CHUNK_OVERLAP")),
+        embedding_api_key=required_env("DASHSCOPE_API_KEY"),
+        rerank_provider=required_env("PERSONALRAG_RERANK_PROVIDER"),
+        rerank_model=required_env("PERSONALRAG_RERANK_MODEL"),
+        rerank_api_key=required_env("DASHSCOPE_API_KEY"),
     )
-# print(f"App database URL: {required_env('PERSONALRAG_APP_DATABASE_URL')}")
+# print(f"{load_settings()}")

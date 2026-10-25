@@ -23,7 +23,7 @@ class TaskStore:
         self.config = {
             "parser": {"encoding": "utf-8", "mime_type": "text/plain"},
             "chunker": {"type": "RecursiveTextSplitter", "chunk_size": 800, "chunk_overlap": 120},
-            "embedding": {"provider": "aliyun", "model": "qwen3.7-text-embedding-flash", "dimensions": 1024},
+            "embedding": {"provider": "dashscope", "model": "qwen3.7-text-embedding-flash", "dimensions": 1024},
         }
 
     @contextmanager

@@ -16,7 +16,7 @@ class RecallTopKTests(unittest.TestCase):
                 kwargs = {"top_k": top_k}
                 if name != "keyword_recall":
                     kwargs["embedding_config"] = {
-                        "provider": "aliyun", "model": "test-model", "dimensions": 1024,
+                        "provider": "dashscope", "model": "test-model", "dimensions": 1024,
                     }
                 recall = getattr(retrieval, name)
                 if error is not None:

@@ -8,8 +8,8 @@ from config import required_env
 
 def embed_texts(texts: list[str], config: dict) -> list[list[float]]:
     """每个输入片段对应一个 1024 维向量，返回顺序与输入一致。"""
-    if config.get("provider") != "aliyun" or config.get("dimensions") != 1024: # type: ignore
-        raise ValueError("当前只支持阿里云 1024 维向量")
+    if config.get("provider") != "dashscope" or config.get("dimensions") != 1024: # type: ignore
+        raise ValueError("当前只支持dashscopes 1024 维向量")
     model = config.get("model") # type: ignore
     if not isinstance(model, str) or not model.strip():
         raise ValueError("embedding 配置缺少模型名称")

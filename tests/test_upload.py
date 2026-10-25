@@ -16,7 +16,20 @@ class UploadTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.settings = Settings("unused", "unused", self.root / "raw")
+        self.settings = Settings(
+            app_database_url="unused",
+            auth_database_url="unused",
+            raw_storage_dir=self.root / "raw",
+            embedding_provider="dashscope",
+            embedding_model="test-model",
+            embedding_dimensions=1024,
+            embedding_chunk_size=800,
+            embedding_chunk_overlap=120,
+            embedding_api_key="unused-test-key",
+            rerank_provider="dashscope",
+            rerank_model="test-rerank-model",
+            rerank_api_key="unused-test-key",
+        )
         self.source = self.root / "note.txt"
         self.source.write_bytes(b"original bytes\r\n")
         self.user = uuid4()

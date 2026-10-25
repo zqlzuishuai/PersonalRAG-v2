@@ -1,7 +1,10 @@
 from contextlib import contextmanager
 from uuid import UUID
+
 import psycopg
+
 from config import Settings
+
 
 @contextmanager
 def auth_connection(settings:Settings):

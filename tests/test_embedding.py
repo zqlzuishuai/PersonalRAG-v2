@@ -8,7 +8,7 @@ import embedding
 
 class EmbeddingTests(unittest.TestCase):
     def setUp(self):
-        self.config = {"provider": "aliyun", "model": "qwen3.7-text-embedding-flash", "dimensions": 1024}
+        self.config = {"provider": "dashscope", "model": "qwen3.7-text-embedding-flash", "dimensions": 1024}
 
     def call(self, vectors, texts=None):
         with patch.object(embedding, "required_env", side_effect=lambda name: "test-key" if name.endswith("KEY") else "https://example.invalid/v1"):

@@ -167,8 +167,8 @@ def hybrid_recall(settings: Settings,user_id: UUID,query: str, embedding_config:
                 fused AS (
                     SELECT
                         COALESCE(v.chunk_id, k.chunk_id) AS chunk_id,
-                        COALESCE(1.0 / (%(rrf_k)s + v.rank_v), 0)
-                        + COALESCE(1.0 / (%(rrf_k)s + k.rank_b), 0) AS rrf_score,
+                        0.5 * COALESCE(1.0 / (%(rrf_k)s + v.rank_v), 0)
+                        + 0.5 * COALESCE(1.0 / (%(rrf_k)s + k.rank_b), 0) AS rrf_score,
                         v.distance AS vector_distance,
                         k.distance AS bm25_distance
                     FROM vector_ranking v
@@ -204,7 +204,7 @@ def hybrid_recall(settings: Settings,user_id: UUID,query: str, embedding_config:
 def main():
     settings = load_settings()
     user_a=UUID("db1e84a8-87c3-4b10-ab50-b56fc99e0a7c")
-    query="四足机器人步态运动控制系统"
+    query="三步走"
     embedding_config={
         "parser":{
             "mime_type": "text/plain",
@@ -212,20 +212,37 @@ def main():
         },
         "chunker":{
             "type":"RecursiveTextSplitter",
-            "chunk_size": 800,
-            "chunk_overlap": 120,
+            "chunk_size": settings.embedding_chunk_size,
+            "chunk_overlap": settings.embedding_chunk_overlap,
         },
         "embedding":{
-            "provider":"aliyun",
-            "model":"qwen3.7-text-embedding-flash",
-            "dimensions": 1024,
+            "provider":settings.embedding_provider,
+            "model":settings.embedding_model,
+            "dimensions":settings.embedding_dimensions,
         },
     }
     results_semantic = semantic_recall(settings,user_a,query,embedding_config["embedding"],top_k=50)
     results_keyword = keyword_recall(settings,user_a,query,top_k=50)
     results_hybrid = hybrid_recall(settings,user_a,query,embedding_config["embedding"],top_k=50)
-    print(f"向量相似度召回结果：\n{results_semantic[0].content}")
-    print(f"关键字召回结果：\n{results_keyword[0].content}")
-    print(f"混合召回结果：\n{results_hybrid[0].content}")
+    if results_semantic:
+        print(f"向量相似度召回结果数量：{len(results_semantic)}")
+        for i,result in enumerate(results_semantic):
+            print(f"向量相似度召回结果：{i}\n{result.content}")
+            print("***"*10)
+        # print(f"向量相似度召回结果：\n{results_semantic[0].content}")
+    print("==="*20)
+    if results_keyword:
+        print(f"关键字召回结果数量：{len(results_keyword)}")
+        for i,result in enumerate(results_keyword):
+            print(f"关键字召回结果：{i}\n{result.content}")
+            print("***"*10)
+        # print(f"关键字召回结果：\n{results_keyword[0].content}")
+    print("==="*20)
+    if results_hybrid:
+        print(f"混合召回结果数量：{len(results_hybrid)}")
+        for i,result in enumerate(results_hybrid):
+            print(f"混合召回结果：{i}\n{result.content}")
+            print("***"*10)
+        # print(f"混合召回结果：\n{results_hybrid[0].content}")
 if __name__ == "__main__":
     main()

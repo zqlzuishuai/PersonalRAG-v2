@@ -12,7 +12,20 @@ class IsolationCheckTests(unittest.TestCase):
     def setUp(self):
         self.a, self.b = uuid4(), uuid4()
         self.store = Store([self.a, self.b])
-        self.settings = Settings("unused", "unused", Path("unused"))
+        self.settings = Settings(
+            app_database_url="unused",
+            auth_database_url="unused",
+            raw_storage_dir=Path("unused"),
+            embedding_provider="dashscope",
+            embedding_model="test-model",
+            embedding_dimensions=1024,
+            embedding_chunk_size=800,
+            embedding_chunk_overlap=120,
+            embedding_api_key="unused-test-key",
+            rerank_provider="dashscope",
+            rerank_model="test-rerank-model",
+            rerank_api_key="unused-test-key",
+        )
         patched = patch.object(main, "user_transaction", self.store.transaction)
         patched.start()
         self.addCleanup(patched.stop)
