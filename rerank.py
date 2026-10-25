@@ -15,7 +15,7 @@ class RerankChunk:
     chunk:RecallChunk
     rerank_score: float | None = None
 
-def rerank_chunks(settings: Settings,called_chunks:list[RecallChunk],query:str,top_n:int=5):
+def rerank_chunks(settings: Settings,called_chunks:list[RecallChunk],query:str,top_n:int=5)->list[RerankChunk]:
     """重排序召回的块"""
     if not called_chunks:
         return []
@@ -46,13 +46,8 @@ def main():
     settings = load_settings()
     user_id = UUID("db1e84a8-87c3-4b10-ab50-b56fc99e0a7c")
     query = "毛泽东做了什么"
-    embedding_config = {
-        "provider": settings.embedding_provider,
-        "model": settings.embedding_model,
-        "dimensions": settings.embedding_dimensions,
-    }
     from retrieval import hybrid_recall
-    called_chunks = hybrid_recall(settings, user_id, query, embedding_config, top_k=30)
+    called_chunks = hybrid_recall(settings, user_id, query, top_k=30)
     rerank_results = rerank_chunks(settings, called_chunks, query, top_n=5)
     # print(f"重排序结果数量：{len(rerank_results)}")
     for rerank_result in rerank_results:

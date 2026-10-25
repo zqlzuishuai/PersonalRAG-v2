@@ -10,6 +10,10 @@ class Settings:
     app_database_url: str = field(repr=False)
     auth_database_url: str = field(repr=False)
     raw_storage_dir: Path
+    chat_model_api_key:str = field(repr=False)
+    chat_model_base_url:str
+    chat_model_provider:str
+    chat_model_name:str
     embedding_provider: str
     embedding_model: str
     embedding_dimensions: int
@@ -18,7 +22,7 @@ class Settings:
     # embedding_request_timeout: int = field(default=60)
     embedding_api_key: str = field(repr=False)
     rerank_provider: str
-    rerank_model: str = field(repr=False)
+    rerank_model: str
     rerank_api_key: str = field(repr=False)
 
 def required_env(name: str) -> str:
@@ -35,6 +39,10 @@ def load_settings() -> Settings:
         raw_storage_dir=Path(
             os.getenv("PERSONALRAG_RAW_STORAGE_DIR", "./data/raw")
         ).resolve(),
+        chat_model_name=required_env("CHAT_MODEL_NAME"),
+        chat_model_api_key=required_env("CHAT_MODEL_API_KEY"),
+        chat_model_base_url=required_env("CHAT_MODEL_BASE_URL"),
+        chat_model_provider=required_env("CHAT_MODEL_PROVIDER"),
         embedding_provider=required_env("PERSONALRAG_EMBEDDING_PROVIDER"),
         embedding_model=required_env("PERSONALRAG_EMBEDDING_MODEL"),
         embedding_dimensions=int(required_env("PERSONALRAG_EMBEDDING_DIMENSIONS")),

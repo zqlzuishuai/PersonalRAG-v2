@@ -24,7 +24,7 @@ class RecallChunk:
     bm25_distance: float | None = None
     
 
-def semantic_recall(settings: Settings,user_id: UUID,query: str, embedding_config: dict, top_k: int =5)-> list[RecallChunk]:
+def semantic_recall(settings: Settings,user_id: UUID,query: str, embedding_config: dict | None =None, top_k: int =5)-> list[RecallChunk]:
     """搜索文档的向量嵌入块。
     返回粗查询列表
     """
@@ -35,6 +35,12 @@ def semantic_recall(settings: Settings,user_id: UUID,query: str, embedding_confi
         raise TypeError("top_k 必须是一个正整数")
     if not (1 <= top_k <= 100):
         raise ValueError("top_k 必须在1到100之间")
+    if embedding_config is None:
+        embedding_config = {
+            "provider": settings.embedding_provider,
+            "model": settings.embedding_model,
+            "dimensions": settings.embedding_dimensions,
+        }
     # 问题向量化
     query_embedding = embed_texts([query], embedding_config)[0]
     # 查余弦相似度最高的前top_k个块
@@ -96,7 +102,7 @@ def keyword_recall(settings: Settings,user_id: UUID,query: str, top_k: int =5)->
         if not results:
             return []
         return [RecallChunk(**result) for result in results] # type: ignore
-def hybrid_recall(settings: Settings,user_id: UUID,query: str, embedding_config: dict, top_k: int =5,candidate_k = None)-> list[RecallChunk]:
+def hybrid_recall(settings: Settings,user_id: UUID,query: str, embedding_config: dict | None =None, top_k: int =5,candidate_k = None)-> list[RecallChunk]:
     """搜索文档的向量嵌入块和关键字块。
     返回粗查询列表
     """
@@ -111,6 +117,12 @@ def hybrid_recall(settings: Settings,user_id: UUID,query: str, embedding_config:
             raise TypeError("candidate_k 必须是整数")
         if not (1 <= candidate_k <= 500):
             raise ValueError("candidate_k 必须在 1 到 500 之间")
+    if embedding_config is None:
+        embedding_config = {
+            "provider": settings.embedding_provider,
+            "model": settings.embedding_model,
+            "dimensions": settings.embedding_dimensions,
+        }
     # 问题向量化
     query_embedding = embed_texts([query], embedding_config)[0]
     query_text=query
