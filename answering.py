@@ -5,8 +5,8 @@ from uuid import UUID
 
 from langchain.chat_models import BaseChatModel, init_chat_model
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from rich import print as rprint
 
+# from rich import print as rprint
 from config import Settings, load_settings
 from rerank import RerankChunk, rerank_chunks
 from retrieval import hybrid_recall
@@ -89,6 +89,10 @@ def generate_system_message(settings:Settings, user:UUID, chat_model:BaseChatMod
     conversation.append(HumanMessage(content=query_and_doc))
     # print(conversation[-1])
     resp=chat_model.invoke(conversation)
+    if not isinstance(resp.content, str):
+        raise TypeError("当前只支持纯文本回答")
+    if not resp.content.strip():
+        raise ValueError("AIMessage 内容为空")
     validate_citations(resp.content, len(reranked_chunks))
 
     return AISearchResult(ai_message=resp,sources=reranked_chunks)
