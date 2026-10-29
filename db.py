@@ -13,10 +13,9 @@ def auth_connection(settings:Settings):
         settings.auth_database_url,
         connect_timeout=5,
         autocommit=True,
-    ) as conn:
-        with conn.transaction():
-            conn.execute("SET TRANSACTION READ ONLY")
-            yield conn
+    ) as conn, conn.transaction():
+        conn.execute("SET TRANSACTION READ ONLY")
+        yield conn
 
 @contextmanager
 def user_transaction(settings:Settings,user_id:UUID):
@@ -26,10 +25,9 @@ def user_transaction(settings:Settings,user_id:UUID):
         settings.app_database_url,
         connect_timeout=5,
         autocommit=True,
-    ) as conn:
-        with conn.transaction():
-            conn.execute(
-                "SELECT set_config('app.user_id',%s,true)",
-                (str(user_id),)
-            )
-            yield conn
+    ) as conn, conn.transaction():
+        conn.execute(
+            "SELECT set_config('app.user_id',%s,true)",
+            (str(user_id),)
+        )
+        yield conn

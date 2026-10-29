@@ -1,6 +1,7 @@
 import json
 from uuid import UUID, uuid4
 
+from psycopg import Error as PsycopgError
 from psycopg.types.json import Jsonb
 
 from config import Settings, load_settings
@@ -166,7 +167,7 @@ def execute_processing_run(settings: Settings, user_id: UUID, run_id: UUID) -> b
                     """,
                     (type(error).__name__, "处理失败；请检查本地异常信息", run_id, worker_id),
                 )
-        except Exception:
+        except PsycopgError as recovery_error:
             error.add_note("失败状态也未能写回数据库，请人工核对任务状态")
         # 提交结果不确定时保留解析文件，避免误删已提交记录引用的文件。
         raise

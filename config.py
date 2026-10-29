@@ -1,7 +1,8 @@
 import os
-from dotenv import load_dotenv
-from dataclasses import dataclass,field
+from dataclasses import dataclass, field
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 ENV=Path(__file__).resolve().parent / ".env"
 load_dotenv(ENV,override=True)
@@ -24,6 +25,9 @@ class Settings:
     rerank_provider: str
     rerank_model: str
     rerank_api_key: str = field(repr=False)
+    mcp_host:str = "127.0.0.1"
+    mcp_port:int = 8000
+    auth_token:str =""
 
 def required_env(name: str) -> str:
     value = os.getenv(name,"").strip()
@@ -52,5 +56,8 @@ def load_settings() -> Settings:
         rerank_provider=required_env("PERSONALRAG_RERANK_PROVIDER"),
         rerank_model=required_env("PERSONALRAG_RERANK_MODEL"),
         rerank_api_key=required_env("DASHSCOPE_API_KEY"),
+        mcp_host=required_env("PERSONALRAG_MCP_HOST"),
+        mcp_port=int(required_env("PERSONALRAG_MCP_PORT")),
+        auth_token=required_env("PERSONALRAG_AUTH_TOKEN")
     )
 # print(f"{load_settings()}")

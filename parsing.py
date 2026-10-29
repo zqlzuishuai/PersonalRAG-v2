@@ -1,11 +1,11 @@
-import json
+# import json
 import mimetypes
 from pathlib import Path
 from uuid import UUID
 
 from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
-    RecursiveJsonSplitter,
+    # RecursiveJsonSplitter,
 )
 
 from config import load_settings

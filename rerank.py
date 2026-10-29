@@ -40,7 +40,12 @@ def rerank_chunks(settings: Settings,called_chunks:list[RecallChunk],query:str,t
         raise RuntimeError(f"重排序请求失败: {resp.status_code} {resp}")
     # print(f"{type(resp)}")
     # rprint(f"重排序结果: {resp}")
-    return [RerankChunk(chunk=called_chunks[result["index"]],rerank_score=result["relevance_score"]) for result in resp.output.results]
+    return [RerankChunk(
+        chunk=called_chunks[result["index"]],
+        rerank_score=result["relevance_score"]
+        )
+        for result in resp.output.results
+    ]
 
 def main():
     settings = load_settings()
