@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "dashscope>=2.0.1",
     "dotenv>=0.9.9",
-    "langchain>=1.4.7",
+    "langchain[mcp]>=1.4.7,<2",
     "langchain-community>=0.4.2",
     "langchain-deepseek>=1.1.1",
     "langchain-openai>=1.7.2",
@@ -19,6 +19,7 @@ dependencies = [
     "starlette>=1.10.0",
     "tiktoken>=0.14.0",
     "uvicorn>=0.54.0",
+    "fastmcp>=4.1.4",
 ]
 
 [[tool.uv.index]]
