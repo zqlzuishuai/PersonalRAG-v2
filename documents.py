@@ -105,11 +105,18 @@ def upload_bytes(
         *,
         folder_id: UUID | None = None
     ) -> UploadResult:
-    """ 上传字节内容，或为已有资料增加一个原文版本。
-        document_id 为空时新建资料；提供该 ID 时只更新当前用户的未删除资料。
-        仅与最新版本比较哈希：A→B→A 仍产生三个版本。
-        调用者负责认证身份；此函数只登记原文，不执行解析、切块和向量化。
-        只有数据库事务提交成功才返回 UploadResult；失败会抛出异常。
+    """上传字节内容，或为已有资料增加一个原文版本。
+
+    Args:
+        settings: 应用配置，包含原始文件存储目录等设置。
+        user_id: 当前用户的唯一标识。
+        file_name: 原始文件名，必须是纯文件名，不能包含路径分隔符。
+        content: 文件的字节内容。
+        document_id: 要追加版本的资料 ID；为 ``None`` 时创建新资料。
+        folder_id: 新资料所属文件夹 ID。与 ``document_id`` 不能同时提供。
+
+    Returns:
+        事务成功提交后返回的上传结果。
     """
     # 类型检查
     if document_id is not None and folder_id is not None:
@@ -610,6 +617,97 @@ def main():
     result = upload_file(settings, user_a, file_path, document_id)
     print(result)
 
+def get_document(
+        settings: Settings,
+        user_id: UUID,
+        document_id: UUID,
+)->dict:
+    with user_transaction(settings,user_id) as conn,conn.cursor(row_factory=dict_row) as cur:
+        document=cur.execute(
+            """
+            SELECT
+                id,
+                title,
+                folder_id,
+                tags,
+                source_type,
+                latest_version_id,
+                active_run_id,
+                created_at,
+                updated_at
+            FROM rag.documents
+            WHERE user_id=%s
+                AND id=%s
+                AND deleted_at IS NULL
+            """,
+            (user_id, document_id)
+        ).fetchone()
+
+        if not document:
+            raise ValueError("资料不存在、已删除或不属于当前用户")
+
+        return dict(document)
+
+
+def list_document_versions(
+        settings: Settings,
+        user_id: UUID,
+        document_id: UUID,
+        limit: int = 50,
+        offset: int = 0,
+)->list[dict]:
+    """列出指定资料的所有原文版本，按版本号倒序排列。"""
+
+    if isinstance(limit,bool) or not isinstance(limit, int):
+        raise TypeError("limit必须是整数")
+    if isinstance(offset,bool) or not isinstance(offset, int):
+        raise TypeError("offset必须是整数")
+    
+    if not 1 <= limit <= 100:
+        raise ValueError("limit必须在1~100之间")
+    if offset<0:
+        raise ValueError("offset必须大于等于0")
+
+    with user_transaction(settings,user_id) as conn,conn.cursor(row_factory=dict_row) as cur:
+        # 检查资料是否存在且属于当前用户
+        document=cur.execute(
+            """
+            SELECT id
+            FROM rag.documents
+            WHERE user_id=%s
+                AND id=%s
+                AND deleted_at IS NULL
+            """,
+            (user_id, document_id)
+        ).fetchone()
+        if not document:
+            raise ValueError("资料不存在、已删除或不属于当前用户")
+
+        # 查询指定资料的所有原文版本，按版本号倒序排列
+        versions=cur.execute(
+            """
+            SELECT
+                id,
+                document_id,
+                version_no,
+                media_type,
+                byte_size,
+                raw_sha256,
+                captured_at
+            FROM rag.document_versions
+            WHERE user_id=%s
+                AND document_id=%s
+            ORDER BY version_no DESC
+            LIMIT %s OFFSET %s
+            """,
+            (user_id, document_id, limit, offset)
+        ).fetchall()
+
+        if not versions:
+            return []
+
+        return [dict(version) for version in versions]
+    
 
 if __name__ == "__main__":
     main()

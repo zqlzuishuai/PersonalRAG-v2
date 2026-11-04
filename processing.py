@@ -2,6 +2,7 @@ import json
 from uuid import UUID, uuid4
 
 from psycopg import Error as PsycopgError
+from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from config import Settings, load_settings
@@ -11,12 +12,16 @@ from embedding import embed_texts
 from parsing import split_file
 
 
+class ProcessingRunNotClaimedError(ValueError):
+    """本次调用未领取到任务"""
+
 def create_processing_run(
         settings:Settings,
         user_id:UUID,
         version_id:UUID,
         config:dict,
 ) -> UUID:
+    """创建一个处理运行；若已存在相同配置的运行，则返回其 ID"""
     with user_transaction(settings,user_id) as conn:
         version = conn.execute(
             "select v.document_id " \
@@ -42,8 +47,21 @@ def create_processing_run(
         ).fetchone()
 
         if run is None:
-            raise ValueError(f"处理运行已存在: {version_id} {config}")
+            run = conn.execute(
+                """
+                SELECT id
+                FROM rag.processing_runs
+                WHERE version_id = %s 
+                    AND config_hash = rag.json_sha256(%s::jsonb)
+                    AND user_id = %s
+                """,
+                (version_id, Jsonb(config), user_id)
+            ).fetchone()
 
+            if run:
+                return run[0]
+            else:
+                raise RuntimeError("任务创建发生冲突，但未找到对应的处理运行")
         run_id = run[0]
     return run_id
 
@@ -79,7 +97,7 @@ def execute_processing_run(settings: Settings, user_id: UUID, run_id: UUID) -> b
             (worker_id, run_id),
         ).fetchone()
         if run is None:
-            raise ValueError("任务不存在、不属于当前用户、尚未到执行时间或不是 queued 状态")
+            raise ProcessingRunNotClaimedError("任务不存在、不属于当前用户、尚未到执行时间或不是 queued 状态")
 
     document_id, version_id, config = run
     try:
@@ -173,14 +191,123 @@ def execute_processing_run(settings: Settings, user_id: UUID, run_id: UUID) -> b
         raise
     return True
 
+def get_processing_run(
+        settings: Settings,
+        user_id: UUID,
+        run_id: UUID,
+)->dict:
+    """获取一个处理运行的详细信息"""
+    with user_transaction(settings, user_id) as conn,conn.cursor(row_factory=dict_row) as cur:
+        row=cur.execute(
+            """
+            SELECT r.id,
+                r.document_id,
+                r.version_id,
+                r.config_hash,
+                r.status,
+                r.attempt_count,
+                r.chunk_count,
+                r.next_attempt_at,
+                r.error_code,
+                r.error_summary,
+                r.created_at,
+                r.updated_at,
+                r.started_at,
+                r.finished_at,
+                COALESCE(d.active_run_id = r.id, FALSE) AS is_published,
+                COALESCE(d.latest_version_id = r.version_id, FALSE) AS is_latest_version
+            FROM rag.processing_runs AS r
+            JOIN rag.documents AS d ON d.id = r.document_id AND d.user_id = r.user_id
+            WHERE r.id=%s
+                AND r.user_id=%s
+                AND d.deleted_at IS NULL
+            """,
+            (run_id,user_id)
+        ).fetchone()
 
-def main():
-    settings = load_settings()
-    user_id = UUID("db1e84a8-87c3-4b10-ab50-b56fc99e0a7c")
-    # run_id = UUID("0fa106e0-cc47-4238-a58c-f19532b28144")
+        if not row:
+            raise ValueError(f"处理运行不存在或不属于用户或所属资料已删除 {user_id}: {run_id}")
+
+        return row
+
+
+def list_version_processing_runs(
+    settings: Settings,
+    user_id: UUID,
+    version_id: UUID,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict]:
+    """列出一个文档版本的处理运行列表"""
+    if isinstance(limit,bool) or not isinstance(limit, int):
+        raise TypeError("limit必须是整数")
+    if isinstance(offset,bool) or not isinstance(offset, int):
+        raise TypeError("offset必须是整数")
     
-    # version_id = UUID("d2007773-3720-4213-b22d-707b0bcc1552")
-    version_id = UUID("e42d100d-8d28-402b-bb7a-728458806b05") # 毛概
+    if not 1 <= limit <= 100:
+        raise ValueError("limit必须在1~100之间")
+    if offset<0:
+        raise ValueError("offset必须大于等于0")
+
+    with user_transaction(settings, user_id) as conn,conn.cursor(row_factory=dict_row) as cur:
+        row=cur.execute(
+            """
+            SELECT 1
+            FROM rag.document_versions AS v
+            JOIN rag.documents AS d 
+                ON d.id = v.document_id 
+                AND d.user_id = v.user_id
+            WHERE v.id=%s
+                AND d.user_id=%s
+                AND d.deleted_at IS NULL
+            """,
+            (version_id,user_id)
+        ).fetchone()
+        if not row:
+            raise ValueError(f"文档版本不存在或不属于用户或所属资料已删除 {user_id}: {version_id}")
+
+        results=cur.execute(
+            """
+            SELECT r.id,
+                r.document_id,
+                r.version_id,
+                r.config_hash,
+                r.status,
+                r.attempt_count,
+                r.chunk_count,
+                r.next_attempt_at,
+                r.error_code,
+                r.error_summary,
+                r.created_at,
+                r.updated_at,
+                r.started_at,
+                r.finished_at,
+                COALESCE(d.active_run_id = r.id, FALSE) AS is_published,
+                COALESCE(d.latest_version_id = r.version_id, FALSE) AS is_latest_version
+            FROM rag.processing_runs AS r
+            JOIN rag.documents AS d ON d.id = r.document_id AND d.user_id = r.user_id
+            WHERE r.version_id=%s
+                AND r.user_id=%s
+                AND d.deleted_at IS NULL
+            ORDER BY r.created_at DESC,r.id DESC
+            LIMIT %s OFFSET %s
+            """,
+            (version_id,user_id,limit,offset)
+        ).fetchall()
+
+    return results
+
+def build_processing_config(
+        settings: Settings,
+)->dict:
+    if settings.embedding_chunk_size != 800:
+        raise ValueError("当前解析器要求切块大小为 800")
+
+    if settings.embedding_chunk_overlap != 120:
+        raise ValueError("当前解析器要求切块重叠为 120")
+
+    if settings.embedding_dimensions != 1024:
+        raise ValueError("当前数据库要求向量维度为 1024")
     processing_config = {
         "parser":{
             "mime_type": "text/plain",
@@ -197,15 +324,60 @@ def main():
             "dimensions": settings.embedding_dimensions,
         },
     }
+    return processing_config
 
-    run_id = create_processing_run(settings, user_id, version_id, processing_config)
-    print(f"任务 ID: {run_id}")
-    print(f"执行任务：python processing.py {run_id}")
+def process_version(
+        settings: Settings,
+        user_id: UUID,
+        version_id: UUID,
+        config: dict | None = None,
+)->dict:
+    """处理入口，创建并执行文档版本的处理运行。
 
-    if execute_processing_run(settings,user_id,run_id):
-        print(f"任务 {run_id} 执行完成")
-    else:
-        print(f"任务 {run_id} 执行失败")
+    参数:
+        settings: 用于创建和执行处理运行的应用配置。
+        user_id: 文档版本所属用户的标识。
+        version_id: 要处理的文档版本标识。
+        config: 可选的处理配置；省略时使用基于应用配置生成的默认配置。
+
+    返回:
+        最终的处理运行状态。
+    """
+    if config is None:
+        config = build_processing_config(settings)
+    run_id=create_processing_run(settings, user_id, version_id, config)
+    run_status=get_processing_run(settings, user_id, run_id)
+    if run_status["status"]=="queued":
+        try:
+            execute_processing_run(settings, user_id, run_id)
+            run_status=get_processing_run(settings, user_id, run_id)
+        except ProcessingRunNotClaimedError as e:
+            run_status=get_processing_run(settings, user_id, run_id)
+            return run_status
+
+    return run_status
+
+def main():
+    from rich import print as rprint
+    settings = load_settings()
+    user_id = UUID("db1e84a8-87c3-4b10-ab50-b56fc99e0a7c")
+    # run_id = UUID("0fa106e0-cc47-4238-a58c-f19532b28144")
+    
+    # version_id = UUID("d2007773-3720-4213-b22d-707b0bcc1552")
+    version_id = UUID("e42d100d-8d28-402b-bb7a-728458806b05") # 毛概
+    from documents import upload_bytes
+    uploadResult=upload_bytes(
+        settings,
+        user_id,
+        "1.txt",
+        content=open("1.txt", "rb").read()
+    )
+    # 处理文档版本
+    run_status = process_version(settings, user_id, uploadResult.version_id)
+    rprint("处理运行状态:", run_status)
+
+    if run_status["status"] == "succeeded" and run_status["is_published"]:
+        rprint("处理成功并已发布为最新版本的运行。")
 
 
 if __name__ == "__main__":
