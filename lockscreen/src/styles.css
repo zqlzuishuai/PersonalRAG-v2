@@ -1,0 +1,339 @@
+/* ============================================================
+   全局设计基座
+   1. 色板 token：浅底深字 + 单一荧光强调 + 单一警示色
+   2. 警示态整幅反相：[data-tone="reject"] 覆盖 token，荧光统一转警示色
+   3. 画质分档：high → medium → low 逐级去掉阴影、环境遮蔽与景深
+   4. 舞台：16:9 百分比定位；竖屏/窄屏覆盖为紧凑纵向布局
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+  --paper: #e7e5e1;
+  --ink: #111214;
+  --accent: #b9e432;
+  --warn: #ff7b00;
+  --warn-deep: #e35d00;
+  --card: #f6f5f2;
+
+  --line: rgba(17, 18, 20, 0.22);
+  --line-soft: rgba(17, 18, 20, 0.1);
+  --muted: rgba(17, 18, 20, 0.52);
+  --ghost: rgba(17, 18, 20, 0.045);
+  --panel: rgba(246, 245, 242, 0.72);
+  --panel-edge: rgba(255, 255, 255, 0.92);
+  --shadow: 0 24px 60px rgba(17, 18, 20, 0.16);
+  --ao: 0 6px 18px rgba(17, 18, 20, 0.12);
+  --blur: blur(14px);
+  --depth: 2px;
+
+  /* 几何无衬线展示体（超粗/极细对比）＋等宽小字＋本地无衬线中文 */
+  --font-display: "Archivo Black", "Helvetica Neue", "Arial Black", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --font-cn: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+
+/* 拒绝态：全局色彩反相，不是局部弹窗。所有组件只引用 token，因此整幅同步翻转。 */
+.app-shell[data-tone="reject"] {
+  color-scheme: dark;
+  --paper: #111214;
+  --ink: #e7e5e1;
+  --accent: #ff7b00; /* 荧光强调统一转警示色 */
+  --card: #1b1d20;
+  --line: rgba(231, 229, 225, 0.24);
+  --line-soft: rgba(231, 229, 225, 0.12);
+  --muted: rgba(231, 229, 225, 0.55);
+  --ghost: rgba(231, 229, 225, 0.05);
+  --panel: rgba(27, 29, 32, 0.74);
+  --panel-edge: rgba(255, 255, 255, 0.16);
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  --ao: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+/* 画质分档：medium 去阴影/环境遮蔽，low 再去景深、磨砂与暗纹 */
+.app-shell[data-quality="medium"] { --shadow: none; --ao: none; --blur: blur(6px); }
+.app-shell[data-quality="low"] { --shadow: none; --ao: none; --blur: none; --depth: 0px; }
+
+* { box-sizing: border-box; }
+html, body, #app { width: 100%; height: 100%; }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-cn);
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.42; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+.app-shell {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  color: var(--ink);
+  transition: background-color 620ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 620ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+/* 纸感底纹、扫描线与暗角：分档可逐级去掉 */
+.app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, var(--ghost) 3px 4px),
+    radial-gradient(120% 90% at 50% 45%, transparent 52%, rgba(17, 18, 20, 0.13) 100%);
+  opacity: 0.7;
+  z-index: 1;
+}
+.app-shell[data-tone="reject"]::before {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, var(--ghost) 3px 4px),
+    radial-gradient(120% 90% at 50% 45%, transparent 48%, rgba(0, 0, 0, 0.6) 100%);
+}
+.app-shell[data-quality="low"]::before { display: none; }
+
+/* ---------- 舞台与百分比定位 ---------- */
+/* 关键逻辑：不能用 grid 居中 oversized item —— 溢出时浏览器会把 center
+   回退为 start，导致画布整体偏移、贴边元素被裁。这里改用 left/top 50%
+   + translate(-50%,-50%) + scale，中心严格落在视口中心。 */
+.stage-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  flex: none;
+  width: 1920px;
+  height: 1080px;
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
+  transform-origin: center center;
+  isolation: isolate;
+}
+.stage-item { position: absolute; }
+
+.pos-wordmark { left: 3%; top: 9%; width: 30%; }
+.pos-clock { right: 3%; top: 5%; width: 22%; }
+.pos-rail { left: 3%; top: 39%; width: 16%; height: 44%; }
+.pos-index-line { left: 22%; top: 0; width: 1px; height: 100%; }
+.pos-specimen { left: 15.6%; top: 31%; width: 20%; height: 24%; }
+.pos-audio { left: 15.6%; top: 59%; width: 20%; height: 15%; }
+.pos-archive { right: 3%; top: 24%; width: 35%; height: 59%; }
+.pos-center { left: 34%; top: 14%; width: 34%; height: 68%; }
+.pos-warning { left: 35.5%; top: 36%; width: 27%; height: 30%; }
+.pos-subtitle { left: 12%; top: 92%; width: 76%; height: 5%; }
+.pos-footer { right: 3%; top: 86%; width: 46%; height: 5%; }
+.pos-leaders { left: 3%; top: 84%; width: 44%; height: 6%; }
+.pos-signature { left: 25%; top: 97%; width: 30%; height: 3%; }
+
+/* ---------- 通用排版与档案细节 ---------- */
+.mono { font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.14em; }
+.micro { font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase; }
+.display { font-family: var(--font-display); font-weight: 900; letter-spacing: -0.02em; }
+.thin { font-weight: 200; }
+.muted { color: var(--muted); }
+.hairline { height: 1px; background: var(--line); }
+.soft-line { height: 1px; background: var(--line-soft); }
+.ellipsis { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* 标签条 / 徽标条 / 编号 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.tag--accent { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.tag--warn { background: var(--warn); border-color: var(--warn); color: #111214; }
+.app-shell[data-tone="reject"] .tag--accent { color: #111214; }
+
+/* 四角取景框（封存卡片、桌面画面共用） */
+.corner { position: absolute; width: 16px; height: 16px; border: 0 solid var(--accent); z-index: 3; }
+.corner.tl { left: 0; top: 0; border-left-width: 2px; border-top-width: 2px; }
+.corner.tr { right: 0; top: 0; border-right-width: 2px; border-top-width: 2px; }
+.corner.bl { left: 0; bottom: 0; border-left-width: 2px; border-bottom-width: 2px; }
+.corner.br { right: 0; bottom: 0; border-right-width: 2px; border-bottom-width: 2px; }
+
+/* 小方块游标 */
+.cursor-square { display: inline-block; width: 8px; height: 8px; background: var(--accent); }
+
+/* 荧光扫描线 */
+.scanline {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+  opacity: 0.85;
+  animation: scan 4.2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  pointer-events: none;
+}
+@keyframes scan {
+  0% { top: 4%; opacity: 0; }
+  12% { opacity: 0.9; }
+  88% { opacity: 0.9; }
+  100% { top: 96%; opacity: 0; }
+}
+
+/* ---------- 分层揭示：入场与出场严格互为镜像 ----------
+   .reveal 使用同一组 transition；加/去 .is-revealed 即为正向/反向播放。 */
+/* 默认可见（渐进增强）：只有显式入场 / 出场态才隐藏，
+   避免过渡被中断或无动画环境下留下空白画面。 */
+.reveal {
+  opacity: 1;
+  transform: none;
+  transition: opacity 760ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 760ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--layer, 0) * 110ms);
+}
+.is-entering .reveal { opacity: 0; transform: translateY(14px); }
+/* 出场时按层级反向延迟收回，形成镜像 */
+.is-exiting .reveal {
+  opacity: 0;
+  transform: translateY(-14px);
+  transition-delay: calc((7 - var(--layer, 0)) * 60ms);
+}
+
+/* ---------- 动效 ---------- */
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes breathe { 0%, 100% { opacity: 0.25; transform: scale(0.97); } 50% { opacity: 1; transform: scale(1.03); } }
+@keyframes spin-reverse { to { transform: rotate(-360deg); } }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-9px); }
+  30% { transform: translateX(8px); }
+  45% { transform: translateX(-6px); }
+  60% { transform: translateX(5px); }
+  80% { transform: translateX(-2px); }
+}
+@keyframes glitch {
+  0%, 100% { transform: translate(0); filter: none; }
+  12% { transform: translate(-3px, 1px); filter: contrast(1.4); }
+  24% { transform: translate(3px, -1px); }
+  38% { transform: translate(-1px, 2px); filter: invert(0.06); }
+  52% { transform: translate(2px, 0); }
+}
+@keyframes row-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes bar { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(1); } }
+
+/* 拒绝态短时故障闪动（全局，非局部弹窗） */
+/* 抖动施加在外层视口，避免覆盖 .stage 的等比 scale transform */
+.app-shell.is-glitch .stage-viewport { animation: glitch 620ms steps(2, end) 1; }
+/* 待机：动画降频 */
+.app-shell.is-idle .scanline,
+.app-shell.is-idle .level-bar,
+.app-shell.is-idle .sculpture-blade { animation-duration: 9s !important; }
+.app-shell.is-idle .stage { opacity: 0.82; transition: opacity 900ms ease; }
+
+/* 逐字解码式文字 */
+.decode { display: inline-block; animation: row-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* 焦点线展开（荧光） */
+.focus-underline { transform: scaleX(0); transform-origin: left center; transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1); }
+.is-focused .focus-underline { transform: scaleX(1); }
+
+/* ---------- 副屏 / 降级视图 ---------- */
+/* 副屏：仅保留字标、时钟、档案面板、字幕与中央状态，且保持静默 */
+.app-shell[data-view="secondary"] .hide-on-secondary { display: none !important; }
+.app-shell[data-view="secondary"] .stage { opacity: 0.94; }
+/* 降级：同色系纸面背景 + 朴素输入区，状态语义不变 */
+.app-shell[data-view="fallback"] .hide-on-fallback { display: none !important; }
+.app-shell[data-view="fallback"]::before { display: none; }
+.app-shell[data-view="fallback"] .stage { filter: none; }
+.app-shell[data-view="fallback"] .pos-archive { background: var(--card); backdrop-filter: none; }
+
+/* ---------- 紧凑布局（桌面端之外的响应式适配） ----------
+   保持同一套组件、配色、文案与状态语义，按 DOM 顺序纵向堆叠并可滚动；
+   画布模式下的百分比定位在此全部释放，避免小屏文字被缩到不可读。 */
+.stage-viewport[data-layout="compact"] {
+  display: block;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 0 32px;
+}
+.stage-viewport[data-layout="compact"] .stage {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  transform: none;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 16px 40px;
+}
+.stage-viewport[data-layout="compact"] .stage-item {
+  position: relative !important;
+  left: auto !important; right: auto !important;
+  top: auto !important; bottom: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0;
+}
+.stage-viewport[data-layout="compact"] .compact-hide { display: none !important; }
+/* 紧凑布局按 DOM 顺序纵向排列（不使用 order 重排），中央锚点保留可读高度 */
+.stage-viewport[data-layout="compact"] .pos-center { min-height: 260px; }
+.stage-viewport[data-layout="compact"] .pos-warning { min-height: 230px; }
+.stage-viewport[data-layout="compact"] .welcome { position: fixed !important; max-width: calc(100vw - 32px); }
+.stage-viewport[data-layout="compact"] .pos-signature,
+.stage-viewport[data-layout="compact"] .pos-leaders,
+.stage-viewport[data-layout="compact"] .pos-index-line { display: none; }
+
+@media (max-width: 520px) {
+  .stage-viewport[data-layout="compact"] .stage { padding: 16px 12px 32px; gap: 14px; }
+  .micro { font-size: 10px; letter-spacing: 0.14em; }
+}
+
+/* ---------- 桌面画面（封存标本与入场/出场遮罩共用同一结构） ----------
+   同一份 DOM 保证入场首帧、出场末帧与卡片缩略图完全一致。 */
+.desktop-frame { position: absolute; inset: 0; background: var(--card); overflow: hidden; }
+.df-bar { height: 26px; background: var(--ink); display: flex; align-items: center; gap: 6px; padding: 0 10px; }
+.df-bar i { width: 8px; height: 8px; background: var(--paper); opacity: 0.65; }
+.df-body { display: flex; height: calc(100% - 26px); }
+.df-side { width: 22%; flex: none; border-right: 1px solid var(--line); background: repeating-linear-gradient(0deg, transparent 0 14px, var(--line-soft) 14px 15px); }
+.df-main { flex: 1; min-width: 0; padding: 7% 8%; }
+.df-chart { height: 52%; border: 1px solid var(--line); background: repeating-linear-gradient(90deg, transparent 0 18px, var(--line-soft) 18px 19px); position: relative; }
+.df-chart::after { content: ""; position: absolute; left: 8%; right: 8%; bottom: 12%; height: 36%; border-bottom: 2px solid var(--accent); border-left: 2px solid var(--accent); transform: skewY(-8deg); }
+.df-lines { display: flex; flex-direction: column; gap: 9%; margin-top: 9%; }
+.df-lines i { display: block; height: 5px; background: var(--line); }
+.df-lines i:nth-child(2) { width: 74%; }
+.df-lines i:nth-child(3) { width: 88%; }
+.df-lines i:nth-child(4) { width: 56%; }
+.index-line { background: var(--line); }
+.index-line::before {
+  content: "22";
+  position: absolute; left: 9px; top: 11%;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em;
+  color: var(--muted);
+}
+
+/* ---------- 无障碍：减少动态效果 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

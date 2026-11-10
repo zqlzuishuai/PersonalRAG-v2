@@ -1,0 +1,96 @@
+/* ============================================================
+   motion.css —— 机械感动效：一切用刻度，不用弹性
+   步进闪烁 / 匀速自转 / 等间隔打印 / 定长倒计时 / 撕裂
+   ============================================================ */
+
+@keyframes caret-blink {
+  0%,
+  49.9% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes step-blink {
+  0%,
+  49.9% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-rev {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@keyframes breath {
+  0%,
+  49.9% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.28;
+  }
+}
+
+@keyframes print-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tear-slab {
+  0% {
+    transform: translateX(var(--tx, 0)) scaleX(1);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0) scaleX(1);
+    opacity: 0;
+  }
+}
+
+@keyframes flash-lum {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.16;
+  }
+}
+
+.blink {
+  animation: step-blink 1s steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink,
+  .spin,
+  .spin--rev,
+  .spin--mid,
+  .breath {
+    animation: none !important;
+  }
+}

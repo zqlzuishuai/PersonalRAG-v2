@@ -30,17 +30,53 @@ def search_knowledge(settings: Settings, user_id:UUID, query: str, top_k: int = 
     if not rerank_results:
         raise ValueError("重排序时出错，未能返回有效结果")
 
-    returning = [
-        {
-            "chunk_id":str(rerank_result.chunk.chunk_id),
-            "document_id":str(rerank_result.chunk.document_id),
-            "version_id":str(rerank_result.chunk.version_id),
-            "run_id":str(rerank_result.chunk.run_id),
-            "content":rerank_result.chunk.content,
-            "locator":rerank_result.chunk.locator
-        }
-        for rerank_result in rerank_results
+    chunk_ids = [
+        UUID(str(result.chunk.chunk_id))
+        for result in rerank_results
     ]
+
+    with user_transaction(settings, user_id) as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            rows = cur.execute(
+                """
+                SELECT c.id AS chunk_id, d.title, v.version_no
+                FROM rag.searchable_chunks AS c
+                JOIN rag.documents AS d
+                    ON d.id = c.document_id
+                    AND d.user_id = c.user_id
+                JOIN rag.document_versions AS v
+                    ON v.id = c.version_id
+                    AND v.document_id = c.document_id
+                    AND v.user_id = c.user_id
+                WHERE c.user_id = %s
+                    AND c.id = ANY(%s::uuid[])
+                """,
+                (user_id, chunk_ids),
+            ).fetchall()
+
+    metadata_by_id = {
+        row["chunk_id"]: row
+        for row in rows
+    }
+
+    returning = []
+    for result in rerank_results:
+        chunk = result.chunk
+        metadata = metadata_by_id.get(UUID(str(chunk.chunk_id)))
+        # Ignore chunks recycled or superseded since recall.
+        if metadata is None:
+            continue
+
+        returning.append({
+            "chunk_id": str(chunk.chunk_id),
+            "document_id": str(chunk.document_id),
+            "version_id": str(chunk.version_id),
+            "run_id": str(chunk.run_id),
+            "title": metadata["title"],
+            "version_no": metadata["version_no"],
+            "content": chunk.content,
+            "locator": chunk.locator,
+        })
 
     return returning
 

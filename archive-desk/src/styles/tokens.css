@@ -1,0 +1,110 @@
+/* ============================================================
+   tokens.css —— 设计令牌层
+   一条 0→1 的「幕值」( --curtain ) 驱动全部颜色：纸幕 ↔ 墨幕。
+   两个色幕是同一套角色的两组取值，一一对应，整体插值。
+   ============================================================ */
+
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/montserrat-var.woff2') format('woff2-variations'),
+       url('/fonts/montserrat-var.woff2') format('woff2');
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-var.woff2') format('woff2-variations'),
+       url('/fonts/jetbrains-mono-var.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* —— 两幕的端点值（槽位：{{纸色}} {{墨色}}）—— */
+  --c-paper-bg: #e7e5e1;
+  --c-paper-fg: #111214;
+  --c-paper-rev: #f2f0eb;
+  --c-paper-card: #f6f5f2;
+  --c-paper-tab: #e2e0dc;
+  --c-paper-dim: #8b8882;
+  --c-paper-line: #c9c6c0;
+  --c-paper-blk: #111214;
+  --c-paper-onblk: #f2f0eb;
+
+  --c-ink-bg: #0b0b0c;
+  --c-ink-fg: #f2f0eb;
+  --c-ink-rev: #f2f0eb;
+  --c-ink-card: #151618;
+  --c-ink-tab: #1d1e20;
+  --c-ink-dim: #6f6d68;
+  --c-ink-line: #2b2b2d;
+  --c-ink-blk: #f2f0eb;
+  --c-ink-onblk: #0b0b0c;
+
+  /* —— 幕值：0 = 纸幕，1 = 墨幕（只允许整体插值，禁止局部改色）—— */
+  --curtain: 0;
+
+  --bg: color-mix(in oklab, var(--c-paper-bg), var(--c-ink-bg) calc(var(--curtain) * 100%));
+  --fg: color-mix(in oklab, var(--c-paper-fg), var(--c-ink-fg) calc(var(--curtain) * 100%));
+  --rev: color-mix(in oklab, var(--c-paper-rev), var(--c-ink-rev) calc(var(--curtain) * 100%));
+  --card: color-mix(in oklab, var(--c-paper-card), var(--c-ink-card) calc(var(--curtain) * 100%));
+  --tab: color-mix(in oklab, var(--c-paper-tab), var(--c-ink-tab) calc(var(--curtain) * 100%));
+  --dim: color-mix(in oklab, var(--c-paper-dim), var(--c-ink-dim) calc(var(--curtain) * 100%));
+  --line: color-mix(in oklab, var(--c-paper-line), var(--c-ink-line) calc(var(--curtain) * 100%));
+  --blk: color-mix(in oklab, var(--c-paper-blk), var(--c-ink-blk) calc(var(--curtain) * 100%));
+  --onblk: color-mix(in oklab, var(--c-paper-onblk), var(--c-ink-onblk) calc(var(--curtain) * 100%));
+
+  /* 86% 墨的发丝线 */
+  --hair: color-mix(in srgb, var(--fg) 86%, transparent);
+  --hair-soft: color-mix(in srgb, var(--fg) 26%, transparent);
+
+  /* —— 仅有的两个彩色 —— */
+  --accent: #b9e432; /* 光标 / 焦点 / 进度 / 状态环 / 当前项 */
+  --alert: #ff7b00; /* 错误 / 危险 / 被拒 / 二次确认 */
+  --alert-deep: #e35d00;
+
+  /* —— 字体两族分工，禁止混用 —— */
+  --font-sans: 'Montserrat', 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB',
+    'Noto Sans SC', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Mono', 'Consolas', 'PingFang SC',
+    'Microsoft YaHei', monospace;
+
+  /* —— 字号阶梯：只有 10 级，可整体等比缩放，不可增删 —— */
+  --ts: 1;
+  --t8: calc(8px * var(--ts));
+  --t95: calc(9.5px * var(--ts));
+  --t11: calc(11px * var(--ts));
+  --t125: calc(12.5px * var(--ts));
+  --t15: calc(15px * var(--ts));
+  --t17: calc(17px * var(--ts));
+  --t21: calc(21px * var(--ts));
+  --t30: calc(30px * var(--ts));
+  --t46: calc(46px * var(--ts));
+  --t92: calc(92px * var(--ts));
+  --t112: calc(112px * var(--ts)); /* 幽灵字专用，不计入阶梯 */
+
+  /* —— 版式语法 —— */
+  --margin: max(3.5%, 40px);
+  --axis-x: 22%;
+  --gutter: 24px;
+  --band-brand: 20%;
+  --band-status: 13%;
+
+  /* —— 时长四档 —— */
+  --d-micro: 240ms;
+  --d-switch: 480ms;
+  --d-flow: 1400ms;
+  --d-hold: 2600ms;
+
+  /* —— 动效曲线：一切用刻度，不用弹性 —— */
+  --ease-step: steps(2, end);
+  --ease-line: linear;
+}
+
+/* 墨幕：整屏翻幕，单帧完成（撕裂遮罩负责遮盖，不做渐变过渡） */
+:root[data-curtain='ink'] {
+  --curtain: 1;
+}

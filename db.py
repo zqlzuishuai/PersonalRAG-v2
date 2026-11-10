@@ -31,3 +31,11 @@ def user_transaction(settings:Settings,user_id:UUID):
             (str(user_id),)
         )
         yield conn
+
+
+def lock_folder_tree(conn: psycopg.Connection, user_id: UUID) -> None:
+    """在事务结束前，串行化对同一用户目录树的更改。"""
+    conn.execute(
+        "SELECT pg_advisory_xact_lock(hashtextextended('rag.folders-tree:' || %s::text, 0))",
+        (user_id,),
+    )

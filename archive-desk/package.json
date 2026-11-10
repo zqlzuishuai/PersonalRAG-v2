@@ -1,0 +1,21 @@
+{
+  "name": "archive-desk",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "恒序档案署 · 双幕纸墨风格调阅台（Vue 3）",
+  "scripts": {
+    "dev": "vite --port 5273 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --port 5274 --strictPort"
+  },
+  "dependencies": {
+    "pinia": "^2.3.1",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "vite": "^6.0.7"
+  }
+}

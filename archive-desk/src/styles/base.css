@@ -1,0 +1,389 @@
+/* ============================================================
+   base.css —— 复位、画布、三条横带、12 列网格、排印工具类
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--t125);
+  line-height: 1.6;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+p,
+dl,
+dd,
+dt,
+ul,
+ol,
+figure {
+  margin: 0;
+  padding: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+input {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--accent);
+  color: #111214;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+}
+
+/* ---------- 画布：1920×1080 基准，整体等比缩放，反向撑开铺满 ---------- */
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  display: grid;
+  grid-template-rows: var(--band-brand) 1fr var(--band-status);
+  background: var(--bg);
+}
+
+/* ---------- 三条横带 ---------- */
+
+.band {
+  position: relative;
+  min-width: 0;
+}
+
+.band--brand {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--gutter);
+  padding: 0 var(--margin) 22px;
+  z-index: 45;
+}
+
+/* 主带：22% 竖轴左 / 40% 中栏 / 38% 右栏（主面板贴右边距） */
+.band--main {
+  display: grid;
+  grid-template-columns: var(--axis-x) 40% auto;
+  align-items: stretch;
+  min-height: 0;
+}
+
+.band--status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gutter);
+  padding: 0 var(--margin);
+}
+
+.zone {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+
+.zone--a {
+  padding-left: var(--margin);
+  padding-right: var(--gutter);
+}
+
+.zone--b {
+  padding: 0 var(--gutter) 0 26px;
+}
+
+.zone--c {
+  padding-right: var(--margin);
+  display: grid;
+  align-content: center;
+}
+
+/* ---------- 竖轴 ---------- */
+
+.axis {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--axis-x);
+  width: 2px;
+  background: var(--hair);
+  z-index: 3;
+  pointer-events: none;
+}
+
+.axis__tick {
+  position: absolute;
+  left: -4px;
+  width: 10px;
+  height: 1px;
+  background: var(--hair);
+  opacity: 0.55;
+}
+
+.axis__mark {
+  position: absolute;
+  left: -18px;
+  width: 38px;
+  height: 22px;
+  background: var(--accent);
+  transition: top var(--d-switch) var(--ease-step);
+}
+
+/* ---------- 空闲态：除品牌带、计时、一行提示外全部滑出画布 ---------- */
+
+.band--main,
+.band--status {
+  transition: opacity var(--d-switch) linear, transform var(--d-switch) linear;
+}
+
+.axis {
+  transition: opacity var(--d-switch) linear;
+}
+
+.canvas.is-idle .band--main,
+.canvas.is-idle .band--status {
+  opacity: 0;
+  transform: translateY(28px);
+  pointer-events: none;
+}
+
+.canvas.is-idle .axis {
+  opacity: 0;
+}
+
+/* 空闲时背景压暗，品牌带留在场上，因此角色反相为浅字 */
+.canvas.is-idle .band--brand {
+  --fg: var(--rev);
+  --dim: color-mix(in srgb, var(--rev) 55%, transparent);
+  --line: color-mix(in srgb, var(--rev) 32%, transparent);
+}
+
+/* ---------- 排印工具类 ---------- */
+
+.lbl {
+  font-family: var(--font-mono);
+  font-size: var(--t8);
+  line-height: 1.1;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.lbl--9 {
+  font-size: var(--t95);
+  letter-spacing: 1.4px;
+}
+
+.lbl--11 {
+  font-size: var(--t11);
+  letter-spacing: 1.2px;
+}
+
+.lbl--fg {
+  color: var(--fg);
+}
+
+.lbl--accent {
+  color: var(--accent);
+}
+
+.lbl--alert {
+  color: var(--alert);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.sans {
+  font-family: var(--font-sans);
+  letter-spacing: 0;
+}
+
+.zh {
+  font-family: var(--font-sans);
+  font-size: var(--t15);
+  line-height: 1.6;
+  letter-spacing: 0;
+}
+
+.zh--sm {
+  font-size: var(--t125);
+}
+
+.muted {
+  color: var(--dim);
+}
+
+.rule {
+  height: 1px;
+  border: 0;
+  background: var(--line);
+}
+
+.ghost {
+  position: absolute;
+  font-family: var(--font-sans);
+  font-size: var(--t112);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: var(--fg);
+  opacity: 0.07;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- 窄屏（< 900px）：单列，字号阶梯整体 ×0.85 ---------- */
+
+/* 字号阶梯的 --ts 由 App.vue 写到 :root（自定义属性里的 var() 只在定义处求值），
+   这里只做版式上的降级。 */
+
+/* .stage 与 .mode-column 是同一个元素，故用复合选择器 */
+.stage.mode-column {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mode-column .canvas {
+  position: static;
+  transform: none !important;
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 72px;
+}
+
+.mode-column .band--brand {
+  padding: 28px 20px 18px;
+  align-items: flex-start;
+}
+
+.mode-column .band--main {
+  grid-template-columns: 1fr;
+  gap: 20px;
+  padding-bottom: 8px;
+}
+
+.mode-column .zone--a {
+  padding: 0 20px;
+}
+
+.mode-column .zone--b {
+  padding: 0 20px;
+}
+
+.mode-column .zone--c {
+  padding: 0 20px;
+}
+
+.mode-column .band--status {
+  padding: 16px 20px 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.mode-column .axis {
+  display: none;
+}
+
+/* 主操作下移为底部通栏（全站唯一，形态不变） */
+.mode-column .pa {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  height: 54px;
+  padding: 0 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .axis__mark {
+    transition: none;
+  }
+}

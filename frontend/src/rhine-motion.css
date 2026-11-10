@@ -1,0 +1,89 @@
+/* Snapshot mechanics are a direct adaptation of rhine-lock's SnapCard. */
+html {scrollbar-gutter:stable;}
+.archive-viewport.is-flying { position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:1100;overflow:hidden;transform-origin:50% 50%;pointer-events:none;will-change:transform,opacity; }
+.archive-viewport.is-flying .workspace { width:100%;min-height:100vh; }
+.snapshot-shade {position:absolute;inset:0;background:#e7e5e1;pointer-events:none;}
+.snapshot-corner {position:absolute;width:46px;height:46px;border:0 solid #ff7b00;pointer-events:none;}
+.snapshot-corner.tl {left:18px;top:18px;border-left-width:3px;border-top-width:3px;transform-origin:0 0;}
+.snapshot-corner.tr {right:18px;top:18px;border-right-width:3px;border-top-width:3px;transform-origin:100% 0;}
+.snapshot-corner.bl {left:18px;bottom:18px;border-left-width:3px;border-bottom-width:3px;transform-origin:0 100%;}
+.snapshot-corner.br {right:18px;bottom:18px;border-right-width:3px;border-bottom-width:3px;transform-origin:100% 100%;}
+.snapshot-caption {position:fixed;left:0;top:0;z-index:1101;pointer-events:none;font:11px var(--mono);letter-spacing:1.5px;color:#111214;white-space:nowrap;}
+.rhine-boot {position:absolute;left:0;top:0;width:calc(100% / var(--boot-k,var(--stage-k)));height:calc(100% / var(--boot-k,var(--stage-k)));transform:scale(var(--boot-k,var(--stage-k)));transform-origin:0 0;pointer-events:none;z-index:20;}
+.boot-access {position:absolute;left:0;right:0;top:calc(50% + 70px);text-align:center;font-size:12px;letter-spacing:3.5px;}
+.boot-lockup {position:absolute;left:50%;top:50%;width:170px;transform-origin:85px 40px;}
+.boot-lockup .rhine-mark {width:170px;}
+.boot-lockup>span {display:block;text-align:center;font-size:12px;font-weight:700;letter-spacing:5px;margin-top:12px;}
+.boot-lines {position:absolute;left:204px;top:26px;display:flex;flex-direction:column;gap:6px;font-size:11px;letter-spacing:2px;white-space:nowrap;}
+.rhine-reticle-anchor {position:absolute;width:0;height:0;z-index:10;transform:scale(var(--reticle-k,var(--stage-k)));pointer-events:none;}
+.rhine-auth-ring {position:absolute;width:400px;height:400px;pointer-events:none;}
+.ring-halo {position:absolute;inset:-30px;border-radius:50%;background:radial-gradient(closest-side,rgb(231 229 225 / 90%) 45%,transparent);}
+.rhine-auth-ring svg {position:absolute;inset:0;width:400px;height:400px;overflow:visible;}
+.rhine-auth-ring path {fill:none;stroke:var(--ink);stroke-width:1.4;}
+.rhine-auth-ring circle {fill:var(--orange);}
+.rhine-auth-ring g {transform-origin:200px 200px;}
+.rhine-auth-ring .r1 {animation:reticle-spin 9s linear infinite;}
+.rhine-auth-ring .r2 {animation:reticle-spin 3.8s linear infinite reverse;}
+.rhine-auth-ring .r3 {animation:reticle-spin 2.6s linear infinite reverse;}
+.rhine-auth-ring .o1 {animation:reticle-spin 7s linear infinite;}
+.rhine-auth-ring .o2 {animation:reticle-spin 4.2s linear infinite;}
+@keyframes reticle-spin {to{transform:rotate(360deg);}}
+.ring-label {position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;font-size:15px;letter-spacing:6px;}
+.ring-processing {position:absolute;left:50%;top:396px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:7px;font-size:10px;letter-spacing:2px;}
+.ring-processing>div {width:168px;height:9px;border:1px solid var(--ink);padding:2px;}
+.ring-processing i {height:100%;display:block;background:var(--ink);}
+.rhine-warning {position:absolute;width:356px;transform:translate(-50%,-38%);padding:24px 20px;background:#060607;border:1px solid #ff7b0040;color:#ff7b00;text-align:center;box-shadow:0 0 120px 60px #060607bb;}
+.rhine-warning>span {display:block;font-size:30px;}
+.rhine-warning strong {display:block;border:2px solid #ff7b00;font-size:30px;letter-spacing:3px;margin:10px 0;}
+.rhine-warning p {font-size:9px;letter-spacing:1px;margin:6px 0;color:#cfcdc8;}
+@media (orientation:landscape) {
+  .login-page {position:fixed;inset:0;z-index:1000;min-height:0;height:100vh;width:100%;padding:0;display:block;perspective:2200px;}
+  .login-page::before {left:calc(430px * var(--stage-k));opacity:var(--header-opacity);}
+  .login-header {position:absolute;inset:0;display:block;pointer-events:none;opacity:var(--header-opacity);}
+  .login-wordmark {position:absolute;left:calc(60px * var(--stage-k));top:calc(112px * var(--stage-k));width:390px;transform:scale(var(--stage-k));transform-origin:0 0;pointer-events:auto;white-space:nowrap;}
+  .login-wordmark>strong {font-size:42px;}
+  .login-wordmark>span {font-size:13px;letter-spacing:.15em;}
+  .login-wordmark>.wordmark-analysis {font-size:39px;}
+  .login-header .rhine-clock {position:absolute;right:calc(64px * var(--stage-k));top:calc(54px * var(--stage-k));transform:scale(var(--stage-k));transform-origin:100% 0;}
+  .login-header .rhine-clock time {font-size:88px;}
+  .login-header .rhine-clock>span {font-size:13px;letter-spacing:.1em;}
+  .login-layout {position:absolute;inset:0;z-index:4;width:100%;height:100%;padding:0;margin:0;max-width:none;display:block;pointer-events:none;perspective:2200px;}
+  .login-intro {position:absolute;left:calc(300px * var(--stage-k));top:calc(337px * var(--stage-k));width:376px;min-height:0;display:block;padding:0;transform:scale(var(--stage-k));transform-origin:0 0;}
+  .specimen-tile {width:376px;height:263px;aspect-ratio:auto;opacity:var(--tile-reveal);box-shadow:none;}
+  .specimen-tile .rhine-mark {width:104px;}
+  .specimen-tile>span {font-size:30px;}
+  .specimen-label {position:absolute;bottom:100%;left:14%;height:31px;padding:5px 12px;font-size:9px;opacity:var(--header-opacity);white-space:nowrap;}
+  .specimen-caption {position:absolute;left:0;top:303px;width:376px;margin:0;opacity:var(--header-opacity);}
+  .specimen-caption>span {font-size:18px;}
+  .specimen-caption p {font-size:13px;}
+  .scene-callout {display:flex;position:absolute;left:300px;right:auto;top:510px;bottom:auto;width:250px;opacity:var(--header-opacity);}
+  /* Zoom lays out glyphs at their display size; perspective belongs to the glass,
+     not a resampled bitmap containing the form and its text. */
+  .login-panel {position:absolute;left:auto;right:64px;top:262px;z-index:4;width:680px;padding:28px 30px 22px;zoom:var(--stage-k);transform:none;perspective:2200px;isolation:isolate;border-color:transparent;background:none;box-shadow:none;backdrop-filter:none;opacity:var(--panel-opacity);pointer-events:auto;}
+  .profile-surface {display:block;position:absolute;inset:-1px;z-index:-1;pointer-events:none;border:1px solid rgb(255 255 255 / 92%);background:rgb(246 245 242 / 87%);box-shadow:8px -8px 0 -1px rgb(255 255 255 / 12%),8px -8px 0 0 rgb(255 255 255 / 52%),0 14px 28px rgb(17 18 20 / 8%);backdrop-filter:blur(16px);transform:translateY(318px) rotateY(var(--panel-yaw)) rotateX(var(--panel-pitch)) translateY(-318px);transform-origin:0 0;}
+  .login-page[data-phase='denied'] .login-panel {top:max(100px,calc(262px - 90px / var(--stage-k)));background:none;border-color:transparent;}
+  .login-page[data-phase='denied'] .profile-surface {background:rgb(21 22 24 / 94%);border-color:#5c5b55;}
+  .login-page[data-phase='granted'] .login-panel {transform:translateX(var(--panel-out));}
+  .profile-identity {grid-template-columns:150px minmax(0,1fr);gap:28px;}
+  .profile-photo {height:178px;}
+  .profile-title h1 {font-size:42px;}
+  .profile-title p {font-size:max(15px,calc(12px / var(--stage-k)));}
+  .profile-data {padding:13px 0;margin:18px 0 6px;}
+  .profile-data>span,.profile-data b {font-size:max(12px,calc(10px / var(--stage-k)));}
+  .form-field {margin-top:18px;}
+  .form-field label {font-size:max(15px,calc(13px / var(--stage-k)));}
+  .form-field label small {font-size:max(9px,calc(9px / var(--stage-k)));}
+  .form-field input {font-size:max(16px,calc(16px / var(--stage-k)));min-height:max(48px,calc(44px / var(--stage-k)));}
+  .password-toggle {font-size:max(11px,calc(11px / var(--stage-k)));}
+  .auth-status {font-size:max(11px,calc(10px / var(--stage-k)));}
+  .login-form [role='alert'] {font-size:max(13px,calc(13px / var(--stage-k)));}
+  .login-submit {font-size:max(15px,calc(13px / var(--stage-k)));}
+  .login-help {font-size:max(10px,calc(10px / var(--stage-k)));}
+  .profile-identity,.profile-data,.login-form,.login-help {opacity:clamp(0,calc(var(--ui-reveal)*1.6 - .3),1);}
+  .login-footer {position:absolute;left:calc(60px * var(--stage-k));right:calc(60px * var(--stage-k));top:calc(100% - 92px * var(--stage-k));min-height:0;opacity:var(--header-opacity);font-size:11px;}
+  .login-page[data-phase='granted'] .login-panel {pointer-events:none;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .rhine-auth-ring g {animation:none;}
+  .login-panel,.profile-surface {transform:none;}
+}

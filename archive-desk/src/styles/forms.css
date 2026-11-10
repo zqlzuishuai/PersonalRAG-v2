@@ -1,0 +1,390 @@
+/* ============================================================
+   forms.css —— 组件只有三种形态，全站复用
+   1 实心块标签 · 2 描边块 · 3 纯文字 + 前置方点
+   外加：主操作（全屏唯一）、表格、档案字段表、面板
+   ============================================================ */
+
+/* ---------- 形态 1：实心块标签（墨底浅字 8px / 字距 0.4 / 内边距 2×6） ---------- */
+.tag {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--blk);
+  color: var(--onblk);
+  font-family: var(--font-mono);
+  font-size: var(--t8);
+  line-height: 1.1;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ---------- 形态 2：描边块（1px 框 / 透明底 / 9–10px） ---------- */
+.tag--outline {
+  background: transparent;
+  color: var(--dim);
+  border: 1px solid var(--line);
+  padding: 1px 6px;
+  font-size: var(--t95);
+  letter-spacing: 0.8px;
+}
+
+.tag--alert {
+  background: var(--alert);
+  color: #111214;
+}
+
+.tag--accent {
+  background: var(--accent);
+  color: #111214;
+}
+
+/* ---------- 形态 3：纯文字 + 前置方点（方点 4–6px / 字距 1.2–1.6） ---------- */
+.dotlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: var(--t8);
+  line-height: 1.1;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--dim);
+  transition: color var(--d-micro) steps(2, end);
+}
+
+.dotlink::before {
+  content: '';
+  flex: none;
+  width: 5px;
+  height: 5px;
+  background: currentColor;
+}
+
+.dotlink:hover,
+.dotlink:focus-visible {
+  color: var(--fg);
+}
+
+.dotlink.is-current {
+  color: var(--fg);
+}
+
+.dotlink.is-current::before {
+  background: var(--accent);
+}
+
+.dotlink.is-disabled {
+  color: var(--line);
+  pointer-events: none;
+}
+
+.dotlink--9 {
+  font-size: var(--t95);
+  letter-spacing: 1.2px;
+}
+
+/* ---------- 主操作：纯黑长条 + 反白字 + 末端强调色箭头 ---------- */
+.pa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  background: var(--blk);
+  color: var(--onblk);
+  font-family: var(--font-mono);
+  font-size: var(--t11);
+  line-height: 1;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  transition: background var(--d-micro) steps(2, end), color var(--d-micro) steps(2, end);
+}
+
+.pa__label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pa__zh {
+  font-family: var(--font-sans);
+  font-size: var(--t125);
+  letter-spacing: 2px;
+  opacity: 0.62;
+}
+
+.pa__arrow {
+  position: relative;
+  flex: none;
+  width: 20px;
+  height: 10px;
+}
+
+.pa__arrow::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 2px;
+  top: 4px;
+  height: 2px;
+  background: var(--accent);
+}
+
+.pa__arrow::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  top: 1px;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+  transform: rotate(45deg);
+}
+
+.pa:hover:not(:disabled),
+.pa:focus-visible {
+  background: var(--accent);
+  color: #111214;
+}
+
+.pa:hover:not(:disabled) .pa__zh,
+.pa:focus-visible .pa__zh {
+  opacity: 0.7;
+}
+
+.pa:hover:not(:disabled) .pa__arrow::before,
+.pa:hover:not(:disabled) .pa__arrow::after,
+.pa:focus-visible .pa__arrow::before,
+.pa:focus-visible .pa__arrow::after {
+  background: #111214;
+  border-color: #111214;
+}
+
+.pa--busy,
+.pa--busy:hover,
+.pa--busy:disabled {
+  background: var(--accent);
+  color: #111214;
+  cursor: progress;
+}
+
+.pa--busy .pa__arrow::before,
+.pa--busy .pa__arrow::after {
+  background: #111214;
+  border-color: #111214;
+}
+
+/* 不可用项走形态 2（描边块），不做实心长条 */
+.pa:disabled:not(.pa--busy) {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--dim);
+  cursor: not-allowed;
+}
+
+.pa:disabled:not(.pa--busy) .pa__zh {
+  opacity: 0.5;
+}
+
+.pa:disabled:not(.pa--busy) .pa__arrow::before {
+  background: var(--dim);
+}
+
+.pa:disabled:not(.pa--busy) .pa__arrow::after {
+  border-color: var(--dim);
+}
+
+/* ---------- 表格：无斑马纹、无竖线，仅表头下一条 1.5px 横线 ---------- */
+.rtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+}
+
+.rtable th {
+  padding: 5px 10px;
+  background: var(--blk);
+  color: var(--onblk);
+  font-size: var(--t8);
+  font-weight: 400;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.rtable thead tr {
+  border-bottom: 1.5px solid var(--hair);
+}
+
+.rtable td {
+  padding: 8px 10px;
+  font-size: var(--t95);
+  letter-spacing: 0;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rtable td.cell-title {
+  font-family: var(--font-sans);
+  font-size: var(--t125);
+  letter-spacing: 0;
+  color: var(--fg);
+}
+
+.rtable tbody tr {
+  cursor: pointer;
+  transition: background var(--d-micro) steps(1, end), color var(--d-micro) steps(1, end);
+}
+
+.rtable tbody tr:hover,
+.rtable tbody tr:focus-visible {
+  background: var(--blk);
+  outline: none;
+}
+
+.rtable tbody tr:hover td,
+.rtable tbody tr:focus-visible td {
+  color: var(--onblk);
+}
+
+.rtable tbody tr:hover td.cell-title,
+.rtable tbody tr:focus-visible td.cell-title {
+  color: var(--onblk);
+}
+
+/* 悬停整行转墨底反白时，块标签必须同步反相，否则会消失 */
+.rtable tbody tr:hover .tag,
+.rtable tbody tr:focus-visible .tag {
+  background: var(--onblk);
+  color: var(--blk);
+}
+
+.rtable tbody tr:hover .tag--outline,
+.rtable tbody tr:focus-visible .tag--outline {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--onblk) 45%, transparent);
+  color: var(--onblk);
+}
+
+/* 当前项：只用一条 2px 强调色边 —— 不用整块反白，保持墨块稀缺 */
+.rtable tbody tr.is-current td {
+  color: var(--fg);
+}
+
+.rtable tbody tr.is-current td:first-child {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* ---------- 档案字段表（dt 弱色 / dd 墨色 / 行距 6 / 等宽数字） ---------- */
+.ft {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  row-gap: 6px;
+  column-gap: 16px;
+}
+
+.ft dt {
+  font-family: var(--font-mono);
+  font-size: var(--t8);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ft dd {
+  font-family: var(--font-mono);
+  font-size: var(--t125);
+  letter-spacing: 0;
+  color: var(--fg);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- 面板与底板 ---------- */
+.panel {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.panel__body {
+  padding: 14px;
+}
+
+/* ---------- 编号槽（4 位凭据） ---------- */
+.slots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slot {
+  width: 54px;
+  height: 62px;
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--t30);
+  letter-spacing: 0;
+  color: var(--fg);
+  background: transparent;
+}
+
+.slot.is-filled {
+  border-color: var(--hair);
+}
+
+.slots.is-focus .slot.is-next {
+  border-color: var(--accent);
+}
+
+.slot.is-cursor {
+  background: var(--accent);
+  color: #111214;
+  animation: caret-blink 1s steps(1, end) infinite;
+}
+
+/* ---------- 键位标注 ---------- */
+.kbd {
+  display: inline-block;
+  padding: 0 3px;
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: var(--t8);
+  line-height: 1.5;
+  letter-spacing: 0.4px;
+  color: var(--dim);
+}
+
+/* ---------- 短横（署名末端） ---------- */
+.dash {
+  display: inline-block;
+  width: 46px;
+  height: 3px;
+  background: var(--blk);
+  vertical-align: middle;
+}

@@ -15,6 +15,9 @@ from parsing import split_file
 class ProcessingRunNotClaimedError(ValueError):
     """本次调用未领取到任务"""
 
+class VersionNotFoundError(ValueError):
+    """文档版本不存在或不属于用户"""
+
 def create_processing_run(
         settings:Settings,
         user_id:UUID,
@@ -33,7 +36,7 @@ def create_processing_run(
         ).fetchone()
 
         if version is None:
-            raise ValueError(f"文档版本不存在或不属于用户 {user_id}: {version_id}")
+            raise VersionNotFoundError(f"文档版本不存在或不属于用户 {user_id}: {version_id}")
 
         document_id = version[0]
 
@@ -264,7 +267,7 @@ def list_version_processing_runs(
             (version_id,user_id)
         ).fetchone()
         if not row:
-            raise ValueError(f"文档版本不存在或不属于用户或所属资料已删除 {user_id}: {version_id}")
+            raise VersionNotFoundError(f"文档版本不存在或不属于用户或所属资料已删除 {user_id}: {version_id}")
 
         results=cur.execute(
             """

@@ -61,3 +61,10 @@ def load_settings() -> Settings:
         auth_token=required_env("PERSONALRAG_AUTH_TOKEN")
     )
 # print(f"{load_settings()}")
+
+
+def env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name, str(default)).strip().lower()
+    if value not in {"true", "false"}:
+        raise ValueError(f"{name} 必须是 true 或 false")
+    return value == "true"
