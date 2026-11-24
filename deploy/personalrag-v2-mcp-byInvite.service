@@ -1,0 +1,17 @@
+[Unit]
+Description=PersonalRAG v2 invitation-only MCP
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/personalrag-v2/app
+EnvironmentFile=/root/personalrag-v2/app/access.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/root/personalrag-v2/app/.venv/bin/python /root/personalrag-v2/app/mcp_server.py
+Restart=on-failure
+RestartSec=5
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

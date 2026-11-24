@@ -9,6 +9,8 @@
 | `00_create_database.sql` | 创建独立新版数据库、owner/app/auth 角色及连接权限 |
 | `01_schema.sql` | 一次性创建十张表、索引、复合外键、RLS、触发器和检索视图 |
 | `03_verify.sql` | 事务内测试结构和关键行为，最后回滚所有测试数据 |
+| `06_mcp_write_permissions.sql` | 为 MCP 账号增加默认关闭的写入权限 |
+| `07_mcp_access_identities.sql` | 创建邀请制 MCP 所需的 Cloudflare 身份映射表，并授予认证角色查询权限 |
 | `PLAN.md` | 本次交付范围与验证步骤 |
 | `validation.json` | 本机独立临时数据库的验证结果；不代表云端已安装或压测通过 |
 
@@ -39,13 +41,22 @@ sudo -u postgres /usr/pgsql-18/bin/psql -X -v ON_ERROR_STOP=1 -d personalrag_v2 
 - `00` 不修改旧数据库的表、角色或密码；新角色名称均为 `personalrag_v2_*`。
 - 创建完结构后还没有业务用户和原文数据，这是预期结果。
 
+启用邀请制 MCP 前，应用尚未执行的增量迁移。新库需要以下两项：
+
+```bash
+sudo -u postgres /usr/pgsql-18/bin/psql -X -v ON_ERROR_STOP=1 -d personalrag_v2 -f 06_mcp_write_permissions.sql
+sudo -u postgres /usr/pgsql-18/bin/psql -X -v ON_ERROR_STOP=1 -d personalrag_v2 -f 07_mcp_access_identities.sql
+```
+
+`07` 不创建邀请映射，已存在的映射会保留。由数据库管理员维护 Cloudflare `issuer`、`subject` 与本地 `rag.users.id` 的绑定。
+
 ## 数据库角色和密码
 
 | 角色 | 职责 |
 |---|---|
 | `personalrag_v2_owner` | NOLOGIN，结构所有者，后续迁移由管理员切换到此角色执行 |
 | `personalrag_v2_app` | 后端/worker/MCP 的业务连接，受用户 RLS 限制 |
-| `personalrag_v2_auth` | 认证专用连接，只能读取用户 ID、登录名、密码哈希、MCP 令牌哈希和账号状态 |
+| `personalrag_v2_auth` | 认证专用只读连接，可读取登录、账号状态、MCP 写权限及 Cloudflare 身份绑定所需字段 |
 
 脚本没有预置密码，也不复用旧库密码。首次部署后交互设置两个 LOGIN 角色的密码：
 

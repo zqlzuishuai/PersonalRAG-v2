@@ -8,11 +8,13 @@ from uuid import UUID
 from auth_jwks.cloudflare import CfaAuthMiddleware, CloudFlareTokenValidation
 from mcp.server import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.server.transport_security import TransportSecuritySettings
+from mcp.types import Tool
 from pydantic import Field
 from starlette.types import ASGIApp
 
 from auth import user_can_write_mcp
-from auth_http import BearerAuthMiddleware, CloudflareUserBindingMiddleware, get_current_user_id
+from auth_http import CloudflareUserBindingMiddleware, get_current_user_id
 from config import Settings, required_env
 from documents import (
     get_document,
@@ -38,6 +40,18 @@ from folder import (
 from knowledge_service import fetch_knowledge, search_knowledge
 
 
+READ_ONLY_TOOLS = frozenset({
+    "rag_search",
+    "rag_fetch",
+    "rag_list_folders",
+    "rag_list_deleted_folders",
+    "rag_list_documents",
+    "rag_list_deleted_documents",
+    "rag_get_document",
+    "rag_list_versions_document",
+})
+
+
 async def require_mcp_write(settings: Settings) -> UUID:
     user_id = get_current_user_id()
     if not await asyncio.to_thread(user_can_write_mcp, settings, user_id):
@@ -45,8 +59,28 @@ async def require_mcp_write(settings: Settings) -> UUID:
     return user_id
 
 
+class PersonalRAGMCPServer(MCPServer):
+    def __init__(self, settings: Settings):
+        super().__init__("PersonalRAG")
+        self.app_settings = settings
+
+    async def list_tools(self) -> list[Tool]:
+        user_id = get_current_user_id()
+        can_write = await asyncio.to_thread(user_can_write_mcp, self.app_settings, user_id)
+        tools = await super().list_tools()
+        if can_write:
+            return tools
+
+        visible_tools = [tool for tool in tools if tool.name in READ_ONLY_TOOLS]
+        for index, tool in enumerate(visible_tools):
+            if tool.name == "rag_search":
+                description = f"{tool.description or ''}\n当前账号为只读，无法通过 MCP 修改资料。"
+                visible_tools[index] = tool.model_copy(update={"description": description.strip()})
+        return visible_tools
+
+
 def create_app(settings: Settings) -> ASGIApp:
-    mcp= MCPServer("PersonalRAG")
+    mcp = PersonalRAGMCPServer(settings)
 
     @mcp.tool()
     async def rag_search(query: str,top_k: Annotated[int,Field(strict=True,ge=1,le=20)] = 5) -> list[dict[str, Any]]:
@@ -466,6 +500,10 @@ def create_app(settings: Settings) -> ASGIApp:
     http_app = mcp.streamable_http_app(
         stateless_http=True,
         json_response=True,
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=["mcp.191226269.xyz", f"127.0.0.1:{settings.mcp_port}"],
+        ),
     )
     cfa=CloudFlareTokenValidation(
         aud=required_env("PERSONALRAG_CFA_AUD"),
@@ -481,8 +519,6 @@ def create_app(settings: Settings) -> ASGIApp:
         verify_token=cfa.verify_user
     )
     return http_app
-    return CfaAuthMiddleware(http_app,verify_token=cfa.verify_user) 
-    return BearerAuthMiddleware(http_app,settings)
 
 def main():
     import uvicorn

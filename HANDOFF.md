@@ -330,7 +330,9 @@ web_app.py 还有 GET /api/folders/{scope}/{folder_id} 路由。当前 list_fold
     /root/personalrag-v2/app/.venv/bin/python -m uvicorn web_app:create_app --factory --host 127.0.0.1 --port 8001
 
 服务单元安装在 /etc/systemd/system/personalrag-v2-web.service。
-上传包内的单元模板在 app/deploy/personalrag-v2-web.service，模板目前未单独保存到本地仓库。
+仓库内的 Web 和邀请制 MCP 单元模板位于 `deploy/`。Web 监听 `127.0.0.1:8001`，MCP 运行 `mcp_server.py`，沿用生产 `.env` 中的 `PERSONALRAG_MCP_HOST=127.0.0.1` 和 `PERSONALRAG_MCP_PORT=8000`。MCP 的 `access.env` 提供 `PERSONALRAG_CFA_AUD` 和 `PERSONALRAG_CFA_TEAM_DOMAIN`，由部署环境单独提供。
+
+首次从仓库发布前，检查 `/etc/systemd/system/personalrag-v2-mcp-byInvite.service.d/50-cloudflare.conf`。现网旧覆盖项设置了 `ExecStart` 和 `PYTHONPATH`，迁移时需在核对其配置后退役该覆盖项，使 systemd 使用仓库模板的入口和虚拟环境中锁定的依赖。启动前应确认 `07_mcp_access_identities.sql` 所需的身份映射表与只读权限，以及 `06_mcp_write_permissions.sql` 对应的写权限字段已就绪。保留现有邀请映射数据。
 
 ### 本地上传包
 
