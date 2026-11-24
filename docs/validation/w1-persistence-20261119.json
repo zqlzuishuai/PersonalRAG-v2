@@ -1,0 +1,34 @@
+{
+  "started_at": "2026-11-19T17:53:08.331823+08:00",
+  "environment": "configured real PostgreSQL and RAG/model services, two existing learning-environment test users",
+  "fixture_record": "stage1-rag-sample-20261118.json",
+  "query": "蓝杉项目的归档编号是什么？",
+  "status": "passed",
+  "run_status": "succeeded",
+  "answer": "蓝杉项目的归档编号是 **QC-7319**。[1]",
+  "citations": [
+    {
+      "citation_no": 1,
+      "document_id": "b5ac3b5b-8051-4c67-b9d6-636521f2a09d",
+      "version_id": "578fc24f-89f1-4004-8747-0ab557f487db",
+      "chunk_id": "9b6db819-987e-452d-8153-76c5f8a5e294",
+      "locator": {"type": "chunk", "ordinal": 0},
+      "quote": "# 蓝杉项目\n\n蓝杉项目的归档编号为 QC-7319。",
+      "source_status": "available"
+    }
+  ],
+  "checks": {
+    "only_recorded_synthetic_chunk": true,
+    "succeeded_with_expected_fact": true,
+    "standalone_readback_equals_result": true,
+    "citations_match_fact_and_exact_source": true,
+    "replay_returns_original_result": true,
+    "same_request_id_rejects_changed_question": true,
+    "other_test_user_cannot_read_run": true,
+    "other_test_user_cannot_ask_in_conversation": true,
+    "no_generation_on_replay_or_rejections": true,
+    "exactly_one_run_and_two_completed_messages": true,
+    "temporary_conversation_and_children_cleaned": true
+  },
+  "scope": "Python service endpoints called directly. Web API, Vue, concurrent requests and Agent streaming require separate acceptance."
+}

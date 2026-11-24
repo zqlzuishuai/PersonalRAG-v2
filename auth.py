@@ -31,6 +31,20 @@ def authenticate_token(settings: Settings,token: str) -> UUID:
         raise PermissionError("无效的访问令牌")
     return UUID(str(row[0]))
 
+def user_can_write_mcp(settings: Settings, user_id: UUID) -> bool:
+    """Check MCP write permission using the read-only auth role."""
+    with auth_connection(settings) as conn:
+        row = conn.execute(
+            """
+            SELECT mcp_write_enabled
+            FROM rag.users
+            WHERE id = %s AND status = 'active'
+            """,
+            (user_id,),
+        ).fetchone()
+    return row is not None and row[0] is True
+
+
 def authenticate_password(settings: Settings, login_name: str, password: str) -> UUID:
     """验证登录名和密码 返回他所属的用户ID"""
     if not isinstance(login_name, str) or not login_name.strip():
@@ -63,3 +77,23 @@ def authenticate_password(settings: Settings, login_name: str, password: str) ->
             raise PermissionError("用户名或密码错误")
 
     return user["id"]
+
+def resolve_cloudflare_user_id(
+        settings: Settings,
+        issuer: str,
+        subject: str,
+)->UUID|None:
+    with auth_connection(settings) as conn:
+        row=conn.execute(
+            """
+            SELECT u.id
+            FROM rag.mcp_access_identities AS identity
+            JOIN rag.users AS u ON u.id = identity.user_id
+            WHERE identity.issuer = %s
+                AND identity.subject = %s
+                AND u.status = 'active'    
+            """,
+            (issuer,subject)
+        ).fetchone()
+    return row[0] if row else None
+    

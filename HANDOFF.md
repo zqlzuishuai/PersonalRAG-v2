@@ -1,5 +1,7 @@
 # PersonalRAG v2 Handoff
 
+本文保留部署拓扑、发布过程及历史验证。当前开发目标和分阶段验收以[产品交付文档](docs/PRODUCT.md)为准；前端实现见[前端维护](docs/FRONTEND.md)。下文的上线验证是各次发布记录，不代表当前线上刚完成复测。
+
 更新日期 2026-11-09，时区 Asia/Hong_Kong。
 
 ## 2026-11-09 加载占位与目录重复请求已修复并上线（最新）
@@ -59,7 +61,7 @@
 
 所有业务浏览器验证使用隔离内存API，未验证真实数据库、模型、上传处理或公网；403部分受限场景及真机软键盘未验。后端没有支持的批量操作、全库总数和处理百分比没有伪造。临时上传样本已删除，示例标题恢复，媒体/网络/视口覆盖已清除。预览继续运行于 http://127.0.0.1:5188/login ，账号preview / preview，标签留在资料库。
 
-来源和实现见 `frontend/THIRD_PARTY_NOTICES.md`、`docs/superpowers/plans/2026-11-08-b-end-workspace.md`。截图在既有产物目录 `b-end-workspace/`，`library-desktop.png`、`detail-drawer.png`、`create-modal.png` 展示最终设计；`before-b-end-workspace.zip`为修改前源码快照。未自动提交，原有大量未提交修改保留。
+来源和实现见 `frontend/THIRD_PARTY_NOTICES.md`、[前端维护](docs/FRONTEND.md)。截图在既有产物目录 `b-end-workspace/`，`library-desktop.png`、`detail-drawer.png`、`create-modal.png` 展示最终设计；`before-b-end-workspace.zip`为修改前源码快照。未自动提交，原有大量未提交修改保留。
 
 ## 2026-11-08 登录表单清晰度修复（最新）
 
@@ -88,7 +90,7 @@
 
 本轮独立复核因代理使用限额未能执行，不能当作通过；已自行检查新增组件和生命周期。上一轮横屏的独立复核证据仅属于上一轮。
 
-截图、竖屏采样及录制位于既有产物目录的 `responsive-finish/`；桌面最终图为 `desktop-complete.jpg`，竖屏为 `login-portrait-final.jpg`。最新构建已由本地预览提供，仍可访问 http://127.0.0.1:5188/login，示例账号 preview / preview。浏览器媒体仿真和视口覆盖已恢复，预览标签保留；服务按用户查看要求保持运行。详细实现记录见 `docs/superpowers/plans/2026-11-08-rhine-responsive-finish.md`。
+截图、竖屏采样及录制位于既有产物目录的 `responsive-finish/`；桌面最终图为 `desktop-complete.jpg`，竖屏为 `login-portrait-final.jpg`。最新构建已由本地预览提供，仍可访问 http://127.0.0.1:5188/login，示例账号 preview / preview。浏览器媒体仿真和视口覆盖已恢复，预览标签保留；服务按用户查看要求保持运行。详细实现记录见 [前端维护](docs/FRONTEND.md)。
 
 ## 2026-11-08 横屏切换重做（取代上一段 View Transition 方案）
 
@@ -104,7 +106,7 @@
 
 本轮只验收横屏，不声称竖屏完成。没有进行真实数据库、模型或公网流程。上游字体/材质及 AGPL 署名保留，源码来源版本仍为 a4df68c。
 
-产物目录的 `landscape-motion/` 保存 `boot-samples.json`、`final-samples.json`、逐帧截图、横屏录制和 `ready-landscape.jpg`；`upstream-transition-contact.jpg` 是原项目演示逐帧对照。改动前快照 `before-landscape-motion.zip` 保留。隔离预览仍为 http://127.0.0.1:5188/login，正常示例账号 preview / preview，按查看要求保持运行。详细设计记录见 `docs/superpowers/plans/2026-11-08-rhine-landscape-motion.md`。
+产物目录的 `landscape-motion/` 保存 `boot-samples.json`、`final-samples.json`、逐帧截图、横屏录制和 `ready-landscape.jpg`；`upstream-transition-contact.jpg` 是原项目演示逐帧对照。改动前快照 `before-landscape-motion.zip` 保留。隔离预览仍为 http://127.0.0.1:5188/login，正常示例账号 preview / preview，按查看要求保持运行。详细设计记录见 [前端维护](docs/FRONTEND.md)。
 
 ## 2026-11-08 补齐登录成功进入动画
 
@@ -138,7 +140,7 @@
 - 检查 375、768、1024、1440px。375px 展开上传与筛选时无横向溢出，scrollWidth=360；768px 工作区为 753，1024px 登录为 1009。减少动态效果实测静态 SVG 可见、canvas 隐藏、transition=0s。
 - 最终浏览器 error 日志为空；上游着色器在当前 Windows 驱动仍有梯度/浮点精度编译 warning，不宣称无警告。
 
-完整计划和限制见 `docs/superpowers/plans/2026-11-08-rhine-frontend.md`。预览方式见 `frontend/README.md`。可复现的隔离预览脚本是 `frontend/tests/preview_server.py`，端口 5188、示例账号 `preview / preview`，不连接数据库或模型；未模拟操作返回 501。本轮验收进程会在结束时停止。
+完整计划和限制见 [前端维护](docs/FRONTEND.md)。预览方式见 `frontend/README.md`。可复现的隔离预览脚本是 `frontend/tests/preview_server.py`，端口 5188、示例账号 `preview / preview`，不连接数据库或模型；未模拟操作返回 501。本轮验收进程会在结束时停止。
 
 截图与改动前快照保留在：
 
@@ -158,7 +160,7 @@
 - 前端构建通过。隔离模拟 API 下检查了工具展开、键盘焦点、资料筛选、详情标记、检索来源、回收站切换和恢复提示、退出及登录错误状态。
 - 响应式检查包含 375、768、1024、1440px；检查了 reduced-motion 和主要文字对比度。此结果不等于真实数据库/模型流程或公网验收。
 
-设计和验证记录：`docs/superpowers/plans/2026-11-08-ink-wash-interface.md`。本地预览命令保持 `npm.cmd run dev -- --configLoader native`；后端仍需运行在本地 8001。
+设计和验证记录：[前端维护](docs/FRONTEND.md)。本地预览命令保持 `npm.cmd run dev -- --configLoader native`；后端仍需运行在本地 8001。
 
 ## 2026-11-07 本地前端界面更新
 
@@ -171,7 +173,7 @@
 - 构建通过；使用隔离模拟 API 在浏览器检查页面导航、筛选空状态、编辑入口、版本标记、检索来源、回收站切换与退出跳转。检查了桌面与 390px 窄屏布局。
 - **此证据不代表真实业务或公网验收**。实际上传、处理、检索流程仍按原第 16 步验收。服务器仍是此前版本。
 
-实施及验证记录：`docs/superpowers/plans/2026-11-07-frontend-polish.md`。本地预览：在 frontend 运行 `npm.cmd run dev -- --configLoader native`，业务 API 仍代理至 `127.0.0.1:8001`。
+实施及验证记录：[前端维护](docs/FRONTEND.md)。本地预览：在 frontend 运行 `npm.cmd run dev -- --configLoader native`，业务 API 仍代理至 `127.0.0.1:8001`。
 
 ## 接手先读
 

@@ -1,5 +1,7 @@
 # PersonalRAG v2
 
+从[项目文档](docs/README.md)查看产品范围、前端维护、RAG 后端和真实验证。接续开发看[产品交付](docs/PRODUCT.md)，线上运行手册看[部署交接](HANDOFF.md)。
+
 原文保存在 `PERSONALRAG_RAW_STORAGE_DIR`，数据库仅保存元数据与相对路径。
 
 ## 上传原文

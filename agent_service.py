@@ -1,9 +1,12 @@
+import asyncio
 from contextlib import asynccontextmanager
 from uuid import UUID, uuid4
 
 from fastmcp import Client as FastMCPClient
 from langchain.agents import create_agent
+from langchain.agents.middleware import ToolCallLimitMiddleware
 from langchain.mcp import MCPAdapter
+from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from answering import create_chat_model
@@ -78,6 +81,7 @@ SYSTEM_PROMPT = """
 
 @asynccontextmanager
 async def agent_session(settings: Settings,url: str,token: str):
+   """创建并管理一个连接到 MCP 服务的智能体会话。"""
    if not isinstance(token, str):
       raise TypeError("token必须是字符串")
    if not token.strip():
@@ -96,6 +100,12 @@ async def agent_session(settings: Settings,url: str,token: str):
          tools=tools,
          system_prompt=SYSTEM_PROMPT,
          checkpointer=checkpointer,
+         middleware=[
+            ToolCallLimitMiddleware(
+               run_limit=3,
+               exit_behavior="error",
+            ),
+         ],
       )
 
       yield agent
@@ -103,7 +113,7 @@ async def agent_session(settings: Settings,url: str,token: str):
 
 async def ask_agent(agent, conversation_id: UUID, query: str) -> dict:
 
-
+   """调用智能体处理用户查询并返回响应。"""
    if not isinstance(query, str):
       raise TypeError("query必须是字符串")
    if not query.strip():
@@ -120,37 +130,104 @@ async def ask_agent(agent, conversation_id: UUID, query: str) -> dict:
          },
    )
 
+async def stream_agent(
+      agent,
+      conversation_id: UUID,
+      query: str,
+):
+   """流式调用智能体并逐段返回模型生成的文本。"""
+   if not isinstance(query, str):
+      raise TypeError("query必须是字符串")
+   if not query.strip():
+      raise ValueError("query不能为空")
+
+   conversation_id = UUID(str(conversation_id))
+   async for mode,data in agent.astream(
+      {"messages":[{"role":"user","content":query}]},
+      config={
+         "configurable":{"thread_id":str(conversation_id)},
+         "recursion_limit":12
+      },
+      stream_mode=["messages","updates"]
+   ):
+      if mode=="messages":
+         chunk,metadata=data
+         if metadata.get("langgraph_node")=="model" and chunk.text:
+            yield {
+               "type":"text",
+               "text":chunk.text
+            }
+
+      elif mode=="updates":
+         for update in data.values():
+            for message in update.get("messages",[]):
+               if isinstance(message,AIMessage):
+                  for call in message.tool_calls:
+                     yield {
+                        "type":"tool_requested",
+                        "name": call["name"],
+                        "id":call["id"],
+                        "text":call["args"],
+                     }
+               elif isinstance(message,ToolMessage):
+                  yield {
+                     "type":"tool_result",
+                     "name":message.name,
+                     "id":message.tool_call_id,
+                     "status":message.status,
+                     "text":message.content,
+                  }
 
 # def tidyResult(result: dict) -> dict:
    
 async def main():
 
+   from rich import print as rprint
+
    from config import load_settings
+
    settings=load_settings()
-   url="http://127.0.0.1:8000/mcp"
+   url="http://127.0.0.1:18000/mcp"
    token=settings.auth_token
    async with agent_session(settings,url,token) as agent:
       conversation_id=uuid4()
 
-      first=await ask_agent(
-         agent,conversation_id,
-         "本次对话的临时代号是青石17，不需要检索。"
-         )
-      second=await ask_agent(
-         agent,conversation_id,
-         "我刚才告诉你的临时代号是什么？"
-         )
-      # rprint(agent.checkpointer)
+      try:
+         async for event in stream_agent(
+            agent,
+            conversation_id,
+            "张佳成的个人资料，输出详细信息，不用屏蔽信息，查询4次",
+         ):
+            if event["type"] == "text":
+               print(event["text"], end="", flush=True)
 
-   import json
+            elif event["type"] == "tool_requested":
+               print(f"\n[请求工具] {event['name']}:{event['text']}", flush=True)
 
-   from rich import print as rprint
+            elif event["type"] == "tool_result":
+               # print(
+               #       f"\n[工具返回] {event['name']}：{event['status']}",
+               #       flush=True,
+               # )
+               label =(
+                  "工具调用失败"
+                  if event["status"] == "error"
+                  else "工具已返回"
+               )
 
-   rprint(first)
-   rprint(second)
-   # print(json.dumps(first,ensure_ascii=False,indent=4,default=str))
+               text =event['text'] if event["status"] != "error" else ""
+               print(f"\n[{label}] {event['name']}: ……", flush=True)
+      except asyncio.CancelledError:
+         print("\n[已取消] 本轮回答可能不完整。", flush=True)
+         raise
+      except Exception as exc:
+         print(f"\n[执行中断] {type(exc).__name__}，本轮回答可能不完整。", flush=True)
+      else:
+         print("\n[本轮执行结束]", flush=True)
 
 
 if __name__ == "__main__":
-   import asyncio
-   asyncio.run(main())
+   try:
+      asyncio.run(main())
+   except KeyboardInterrupt:
+      pass  # 命令行入口正常处理用户退出

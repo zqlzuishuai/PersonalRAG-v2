@@ -1,0 +1,28 @@
+{
+  "started_at": "2026-11-18T23:37:19.472146+08:00",
+  "query": "蓝杉项目的负责人是谁？",
+  "expected_behavior": "明确说明本次资料未提供负责人，不编造姓名，不将未检索到表述为负责人不存在。",
+  "stage": "complete",
+  "preflight": {
+    "published_chunk_count": 1,
+    "only_expected_public_fixture": true
+  },
+  "answer": "当前检索到的资料不足以回答“蓝杉项目的负责人是谁”。\n\n资料中只提到蓝杉项目的归档编号为 QC-7319，没有说明项目负责人信息 [1]。",
+  "sources": [
+    {
+      "number": 1,
+      "chunk_id": "9b6db819-987e-452d-8153-76c5f8a5e294",
+      "version_id": "578fc24f-89f1-4004-8747-0ab557f487db",
+      "content": "# 蓝杉项目\n\n蓝杉项目的归档编号为 QC-7319。"
+    }
+  ],
+  "passed": true,
+  "content_review": {
+    "method": "人工核对实际回答与完整返回片段，不以关键词匹配代替语义判断",
+    "states_insufficient_evidence": true,
+    "does_not_invent_person": true,
+    "does_not_claim_person_does_not_exist": true,
+    "citation_supports_archive_number_statement": true,
+    "limitation": "仅此一个真实模型样例；未验证所有资料不足问题，未验证零召回。"
+  }
+}

@@ -355,7 +355,7 @@ def move_document(
         user_id: UUID, 
         document_id: UUID, 
         target_folder_id: UUID | None=None
-        ):
+        )->UUID:
     """移动资料到指定文件夹，或移至根目录（target_folder_id=None）。"""
     with user_transaction(settings,user_id) as conn:
         lock_folder_tree(conn, user_id)

@@ -1,0 +1,34 @@
+{
+  "started_at": "2026-11-18T23:34:29.792039+08:00",
+  "environment": "configured personalrag_v2 database; provided test user; empty user verified before upload",
+  "fixture": "# 蓝杉项目\n\n蓝杉项目的归档编号为 QC-7319。\n",
+  "query": "蓝杉项目的归档编号是什么？",
+  "stage": "complete",
+  "passed": true,
+  "document_id": "b5ac3b5b-8051-4c67-b9d6-636521f2a09d",
+  "version_id": "578fc24f-89f1-4004-8747-0ab557f487db",
+  "processing": {
+    "id": "89ae18e5-c2ad-4e9f-8dc1-88b568739041",
+    "status": "succeeded",
+    "is_published": true,
+    "version_id": "578fc24f-89f1-4004-8747-0ab557f487db"
+  },
+  "answer": "蓝杉项目的归档编号是 **QC-7319**。[1]",
+  "sources": [
+    {
+      "number": 1,
+      "chunk_id": "9b6db819-987e-452d-8153-76c5f8a5e294",
+      "version_id": "578fc24f-89f1-4004-8747-0ab557f487db",
+      "document_id": "b5ac3b5b-8051-4c67-b9d6-636521f2a09d",
+      "content": "# 蓝杉项目\n\n蓝杉项目的归档编号为 QC-7319。"
+    }
+  ],
+  "cited_numbers": [
+    1
+  ],
+  "checks": {
+    "answer_contains_expected_fact": true,
+    "has_citation": true,
+    "cited_sources_match_uploaded_version_and_fact": true
+  }
+}

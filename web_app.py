@@ -4,6 +4,7 @@ from ipaddress import ip_address
 from pathlib import Path
 from uuid import UUID
 
+from auth_jwks.cloudflare import CfaAuthMiddleware, CloudFlareTokenValidation
 from psycopg.errors import UniqueViolation
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
@@ -92,8 +93,27 @@ class ForceHTTPSMiddleware:
 def healthz(request):
     return JSONResponse({"status": "ok"})
 
+
+
+
+
+
+
+
+
 def create_app():
+    cfa=CloudFlareTokenValidation(
+        aud=required_env("PERSONALRAG_CFA_AUD"),
+        team=required_env("PERSONALRAG_CFA_TEAM_DOMAIN"),
+    )
+
+    async def homepage(request):
+        user=request.state.user
+        return JSONResponse({"message":f"欢迎使用 PersonalRAG Web 服务,{user.email}","user":str(user) if user else None})
+
+
     middleware=[
+        Middleware(CfaAuthMiddleware,verify_token=cfa.verify_user),
         Middleware(ForceHTTPSMiddleware),
         Middleware(
             SessionMiddleware,
@@ -103,9 +123,9 @@ def create_app():
             max_age=8*60*60),
     ]
 
-    app = Starlette(
-        debug=env_bool("PERSONALRAG_WEB_DEBUG",default=False),
-        routes=[
+
+    routes=[
+            Route("/",homepage,methods=["GET"]),
             Route("/api/healthz",healthz,methods=["GET"]),
             Route("/api/auth/me",get_current_user_id,methods=["GET"]),
             Route("/api/auth/login",login,methods=["POST"]),
@@ -133,7 +153,10 @@ def create_app():
             Route("/api/versions/{version_id}/process",process_version_endpoint,methods=["POST"]),
             Route("/api/versions/{version_id}/processing-runs",list_version_processing_runs_endpoint,methods=["GET"]),
             Route("/api/search",search_knowledge_endpoint,methods=["POST"])
-        ],
+        ]
+    app = Starlette(
+        debug=env_bool("PERSONALRAG_WEB_DEBUG",default=False),
+        routes=routes,
         middleware=middleware,
         )
 
