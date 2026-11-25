@@ -36,6 +36,12 @@ class FolderNotFoundError(ValueError):
 class DocumentRestoreConflictError(ValueError):
     """The document must be restored through its folder or after its folder."""
 
+class DocumentContentUnavailableError(Exception):
+    """The stored original is missing or fails its integrity checks."""
+
+class UnsupportedDocumentContentError(Exception):
+    """The stored original cannot be displayed as UTF-8 text."""
+
 
 def compute_file_hash(content_bin: bytes) -> str:
     """根据文件原始字节计算 SHA256，用于比较内容是否变化。"""
@@ -687,6 +693,41 @@ def get_document(
             raise ValueError("资料不存在、已删除或不属于当前用户")
 
         return dict(document)
+
+
+def read_document_version_content(
+    settings: Settings, user_id: UUID, document_id: UUID, version_id: UUID,
+) -> dict | None:
+    """Read one original snapshot belonging to an active document."""
+    with user_transaction(settings, user_id) as conn, conn.cursor(row_factory=dict_row) as cur:
+        version = cur.execute(
+            """
+            SELECT v.storage_key, v.raw_sha256, v.byte_size, v.version_no, v.media_type
+            FROM rag.documents AS d
+            JOIN rag.document_versions AS v ON v.document_id = d.id AND v.user_id = d.user_id
+            WHERE d.user_id = %s AND d.id = %s AND v.id = %s AND d.deleted_at IS NULL
+            """,
+            (user_id, document_id, version_id),
+        ).fetchone()
+    if version is None:
+        return None
+
+    media_type = version["media_type"]
+    if media_type not in {"text/plain", "text/markdown", "application/json"}:
+        raise UnsupportedDocumentContentError()
+    try:
+        path = storage_path(settings.raw_storage_dir.resolve(), version["storage_key"])
+        with path.open("rb") as source:
+            original = source.read(version["byte_size"] + 1)
+    except (OSError, ValueError, RuntimeError) as error:
+        raise DocumentContentUnavailableError() from error
+    if len(original) != version["byte_size"] or compute_file_hash(original) != version["raw_sha256"]:
+        raise DocumentContentUnavailableError()
+    try:
+        content = original.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise UnsupportedDocumentContentError() from error
+    return {"content": content, "version_no": version["version_no"], "media_type": media_type}
 
 
 def list_document_versions(

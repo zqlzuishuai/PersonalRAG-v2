@@ -2,6 +2,8 @@
 import { onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+defineOptions({ name: 'SearchView' })
+
 const router = useRouter()
 const query = ref('')
 const topK = ref(5)
@@ -33,6 +35,7 @@ async function search() {
       body: JSON.stringify({ query: text, top_k: topK.value }),
       signal,
     })
+    if (signal.aborted) return
     if (response.status === 401) {
       await router.replace('/login')
       return
@@ -76,7 +79,7 @@ onUnmounted(() => controller?.abort())
         <div v-else key="content">
           <p role="status">「{{submittedQuery}}」找到 {{results.length}} 个片段。</p>
           <TransitionGroup name="list-item" tag="ol" appear>
-            <li v-for="result in results" :key="result.chunk_id"><article><h2><RouterLink :to="{ name: 'document', params: { documentId: result.document_id } }">{{result.title}}</RouterLink></h2><p class="source">v{{result.version_no}}<span v-if="Number.isInteger(result.locator?.ordinal)"> · 片段 {{result.locator.ordinal + 1}}</span></p><p class="content">{{result.content}}</p></article></li>
+            <li v-for="result in results" :key="result.chunk_id"><article><h2><RouterLink :to="{ name: 'document', params: { documentId: result.document_id }, query: { from: 'search' } }">{{result.title}}</RouterLink></h2><p class="source">v{{result.version_no}}<span v-if="Number.isInteger(result.locator?.ordinal)"> · 片段 {{result.locator.ordinal + 1}}</span></p><p class="content">{{result.content}}</p></article></li>
           </TransitionGroup>
         </div>
       </Transition>

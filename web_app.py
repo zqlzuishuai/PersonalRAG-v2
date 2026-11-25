@@ -17,13 +17,16 @@ from starlette.routing import Route
 from auth import authenticate_password
 from config import env_bool, load_settings, required_env
 from documents import (
+    DocumentContentUnavailableError,
     DocumentRestoreConflictError,
     FolderNotFoundError,
+    UnsupportedDocumentContentError,
     get_document,
     list_deleted_documents,
     list_document_versions,
     list_documents,
     move_document,
+    read_document_version_content,
     rename_document,
     restore_document,
     set_document_tags,
@@ -126,6 +129,7 @@ def create_app():
             Route("/api/folders/{folder_id}",rename_folder_endpoint,methods=["PATCH"]),
             Route("/api/documents/{document_id}",get_document_endpoint,methods=["GET"]),
             Route("/api/documents/{document_id}/versions",list_document_versions_endpoint,methods=["GET"]),
+            Route("/api/documents/{document_id}/versions/{version_id}/content",read_document_version_content_endpoint,methods=["GET"]),
             Route("/api/documents/{document_id}/versions",upload_bytes_with_document_id_endpoint,max_body_size=MAX_FILE_SIZE + 1024*1024,methods=["POST"]),
             Route("/api/documents/{document_id}",rename_document_endpoint,methods=["PATCH"]),
             Route("/api/documents/{document_id}/tags",set_document_tags_endpoint,methods=["PUT"]),
@@ -479,6 +483,30 @@ async def get_document_endpoint(request: Request):
         "created_at": document_data["created_at"].isoformat(),
         "updated_at": document_data["updated_at"].isoformat(),
     })
+
+async def read_document_version_content_endpoint(request: Request):
+    headers = {"Cache-Control": "private, no-store"}
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return JSONResponse({"error": "未登录"}, status_code=401, headers=headers)
+    try:
+        document_id = UUID(request.path_params["document_id"])
+        version_id = UUID(request.path_params["version_id"])
+    except ValueError:
+        return JSONResponse({"error": "资料或版本 ID 无效。"}, status_code=400, headers=headers)
+    try:
+        original = await run_in_threadpool(
+            read_document_version_content, request.app.state.settings, UUID(user_id), document_id, version_id,
+        )
+    except UnsupportedDocumentContentError:
+        return JSONResponse({"error": "此版本无法作为 UTF-8 文本显示。"}, status_code=415, headers=headers)
+    except DocumentContentUnavailableError:
+        logger.warning("Original unavailable for document %s version %s", document_id, version_id)
+        return JSONResponse({"error": "此版本的原文文件缺失或损坏。"}, status_code=503, headers=headers)
+    if original is None:
+        return JSONResponse({"error": "找不到此资料版本。"}, status_code=404, headers=headers)
+    return JSONResponse(original, headers=headers)
+
 
 async def list_document_versions_endpoint(request: Request):
 

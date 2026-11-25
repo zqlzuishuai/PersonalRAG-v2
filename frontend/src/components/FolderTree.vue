@@ -22,7 +22,7 @@ onBeforeUnmount(()=>{requestId++})
 </script>
 <template>
   <nav class="folder-tree" aria-label="文件夹目录" :aria-busy="loading">
-    <RouterLink class="tree-root" :class="{'is-current':!path.length}" to="/library" :aria-current="!path.length?'page':undefined"><AppIcon name="library" :size="16"/><span>全部资料</span></RouterLink>
+    <RouterLink class="tree-root" :class="{'is-current':!path.length}" to="/library" :aria-current="!path.length?'location':undefined"><AppIcon name="library" :size="16"/><span>资料库根目录</span></RouterLink>
     <div v-if="loading&&!loaded" class="tree-loading" role="status"><span class="sr-only">正在读取目录…</span><div v-for="row in 3" :key="row" class="tree-loading-row" aria-hidden="true"><span></span><i></i></div></div>
     <div v-if="error" class="tree-message tree-error" role="alert"><span>{{error}}</span><button type="button" @click="refresh">重试</button></div>
     <p v-else-if="loaded&&!roots.length" class="tree-message">还没有文件夹。</p>

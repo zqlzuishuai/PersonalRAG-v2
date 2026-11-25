@@ -1,3 +1,4 @@
+import { shallowRef } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginViews.vue'
 import RegisterView from '../views/RegisterView.vue'
@@ -7,11 +8,19 @@ import DocumentView from '../views/DocumentView.vue'
 import TrashView from '../views/TrashView.vue'
 import SearchView from '../views/SearchView.vue'
 
-async function requireSession() {
+export const workspaceUserId = shallowRef(null)
+
+async function requireSession(to) {
   try {
     const response = await fetch('/api/auth/me')
 
-    if (response.status === 200) return true
+    if (response.status === 200) {
+      const { user_id } = await response.json()
+      if (typeof user_id === 'string' && user_id) {
+        to.meta.workspaceUserId = user_id
+        return true
+      }
+    }
     if (response.status === 401) return { path: '/login' ,replace:true}
   } catch {
 
@@ -34,6 +43,10 @@ const router = createRouter({
     { path: '/trash', component: TrashView, beforeEnter: requireSession },
     { path: '/documents/:documentId', name: 'document', component: DocumentView, beforeEnter: requireSession },
   ],
+})
+
+router.afterEach((to, from, failure) => {
+  if (!failure && to.meta.workspaceUserId) workspaceUserId.value = to.meta.workspaceUserId
 })
 
 export default router

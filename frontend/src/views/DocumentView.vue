@@ -1,14 +1,24 @@
 <script setup>
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { DropdownMenuContent, DropdownMenuItem, DropdownMenuPortal, DropdownMenuRoot, DropdownMenuTrigger } from 'reka-ui'
 import WorkOverlay from '../components/WorkOverlay.vue'
 import AppIcon from '../components/AppIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
 const endpoint = computed(() => '/api/documents/' + encodeURIComponent(route.params.documentId))
-const libraryLink = computed(() => ({ path: '/library', query: { folder: route.query.folder } }))
+const libraryLink = computed(() => ({ path: '/library', query: { folder: route.query.folder, scope: route.query.scope } }))
+const fromSearch = computed(() => route.query.from === 'search')
 const document = ref(null)
+const historicalVersionId = ref(null)
+const readerVersionId = computed(() => historicalVersionId.value ?? document.value?.latest_version_id)
+const original = ref(null)
+const originalLoading = ref(false)
+const originalError = ref('')
+const readerHeading = ref(null)
+const readerText = ref(null)
+const originalRetry = ref(0)
 const confirmingRecycle = ref(false)
 const recycling = ref(false)
 const recycleError = ref('')
@@ -53,7 +63,23 @@ const loadingFolders = ref(false)
 const editError = ref('')
 const editNotice = ref('')
 const saving = ref(false)
+const manageButton = ref(null)
+let pendingManagementAction = null
 let folderRequest = 0
+
+function openManagementAction(event) {
+  if (!pendingManagementAction) return
+  event.preventDefault()
+  manageButton.value?.focus()
+  const action = pendingManagementAction
+  pendingManagementAction = null
+  if (action === 'recycle') {
+    recycleError.value = ''
+    confirmingRecycle.value = true
+  } else {
+    startEdit(action)
+  }
+}
 
 function startEdit(kind) {
   edit.value = kind
@@ -257,6 +283,7 @@ watch(endpoint, () => {
   recycleError.value = ''
   editNotice.value = ''
   document.value = null
+  historicalVersionId.value = null
   versions.value = []
   offset.value = 0
   hasNext.value = false
@@ -266,6 +293,34 @@ watch(endpoint, () => {
   loadDetail()
   loadHistory()
 }, { immediate: true })
+
+watch([endpoint, readerVersionId, originalRetry], async ([url, versionId], _, onCleanup) => {
+  original.value = null
+  originalError.value = ''
+  originalLoading.value = Boolean(versionId)
+  if (!versionId) return
+
+  const controller = new AbortController()
+  const { signal } = controller
+  onCleanup(() => controller.abort())
+  try {
+    const result = await request(url + '/versions/' + encodeURIComponent(versionId) + '/content', { signal })
+    if (!signal.aborted) original.value = result
+  } catch (error) {
+    if (!signal.aborted) originalError.value = error.message
+  } finally {
+    if (!signal.aborted) originalLoading.value = false
+  }
+})
+
+async function selectOriginal(versionId) {
+  historicalVersionId.value = versionId === document.value.latest_version_id ? null : versionId
+  await nextTick()
+  if (readerText.value) readerText.value.scrollTop = 0
+  if (window.matchMedia('(max-width: 980px)').matches) {
+    readerHeading.value?.focus()
+  }
+}
 
 async function uploadVersion(event) {
   if (uploading.value) return
@@ -293,6 +348,7 @@ async function uploadVersion(event) {
       ? '已上传 v' + result.version_no + '。'
       : '内容与最新版本一致，已复用 v' + result.version_no + '。'
     await Promise.all([loadDetail(), loadHistory()])
+    if (endpoint.value === target && result.created_version) historicalVersionId.value = null
   } catch (error) {
     if (endpoint.value === target) uploadError.value = error.message
   } finally {
@@ -322,7 +378,49 @@ function localTime(value) {
 
 <template>
   <main class="detail">
-    <RouterLink class="back-link" :to="libraryLink"><AppIcon name="back" :size="15"/>返回资料库</RouterLink>
+    <header class="detail-header">
+      <div class="detail-topline">
+        <RouterLink class="back-link" :to="fromSearch ? '/search' : libraryLink">
+          <AppIcon name="back" :size="15"/>{{ fromSearch ? '返回正文检索' : '返回资料库' }}
+        </RouterLink>
+        <div v-if="document" class="detail-header-actions">
+          <button type="button" class="primary" @click="uploadOpen=true;uploadError=''">
+            <AppIcon name="upload" :size="16"/>上传新版本
+          </button>
+          <DropdownMenuRoot :modal="false">
+            <DropdownMenuTrigger as-child>
+              <button ref="manageButton" type="button" :disabled="saving || recycling">
+                管理<AppIcon class="detail-menu-chevron" name="chevron" :size="14"/>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuPortal>
+              <DropdownMenuContent class="tree-menu" align="end" :side-offset="4" :collision-padding="8" @close-auto-focus="openManagementAction">
+                <DropdownMenuItem @select="pendingManagementAction = 'title'">改名</DropdownMenuItem>
+                <DropdownMenuItem @select="pendingManagementAction = 'tags'">编辑标签</DropdownMenuItem>
+                <DropdownMenuItem @select="pendingManagementAction = 'folder'">移动目录</DropdownMenuItem>
+                <DropdownMenuItem class="tree-recycle" @select="pendingManagementAction = 'recycle'">移入回收站</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenuPortal>
+          </DropdownMenuRoot>
+        </div>
+      </div>
+      <template v-if="document">
+        <h1>{{ document.title }}</h1>
+        <dl class="detail-meta">
+          <div v-if="document.updated_at">
+            <dt>更新于</dt>
+            <dd><time :datetime="document.updated_at">{{ localTime(document.updated_at) }}</time></dd>
+          </div>
+          <div>
+            <dt>标签</dt>
+            <dd>
+              <span v-for="tag in document.tags" :key="tag" class="tag">{{ tag }}</span>
+              <span v-if="!document.tags?.length">未添加</span>
+            </dd>
+          </div>
+        </dl>
+      </template>
+    </header>
     <p v-if="loading && !document" role="status">正在读取资料…</p>
     <div v-if="detailError">
       <p role="alert" class="error">{{ detailError }}</p>
@@ -330,19 +428,9 @@ function localTime(value) {
     </div>
 
     <template v-if="document">
-      <div class="directory-heading"><div><h1>{{document.title}}</h1><p class="page-description">资料详情 · 原文与处理版本</p></div><button type="button" class="primary" @click="uploadOpen=true;uploadError=''"><AppIcon name="upload" :size="16"/>上传新版本</button></div>
+      <p v-if="editNotice" class="detail-notice" role="status">{{ editNotice }}</p>
 
-
-      <section aria-labelledby="organize-title">
-        <h2 id="organize-title">资料信息</h2><div class="section-body"><dl class="description-grid"><div><dt>标签</dt><dd><span v-for="tag in document.tags" :key="tag" class="tag">{{tag}}</span><span v-if="!document.tags?.length">未添加标签</span></dd></div><div><dt>更新时间</dt><dd>{{localTime(document.updated_at)}}</dd></div></dl></div>
-        <div class="actions">
-          <button type="button" :disabled="saving" @click="startEdit('title')">改名</button>
-          <button type="button" :disabled="saving" @click="startEdit('tags')">编辑标签</button>
-          <button type="button" :disabled="saving" @click="startEdit('folder')">移动目录</button>
-        </div>
-        <p v-if="editNotice" role="status">{{ editNotice }}</p>
-
-        <WorkOverlay v-if="edit" :kind="edit==='title'?'modal':'drawer'" :title="edit==='title'?'修改资料标题':edit==='tags'?'编辑标签':'移动资料'" :busy="saving" :dirty="editDirty" @close="closeEditor"><form id="document-edit" @submit.prevent="saveEdit">
+      <WorkOverlay v-if="edit" :kind="edit==='title'?'modal':'drawer'" :title="edit==='title'?'修改资料标题':edit==='tags'?'编辑标签':'移动资料'" :busy="saving" :dirty="editDirty" @close="closeEditor"><form id="document-edit" @submit.prevent="saveEdit">
           <template v-if="edit === 'title'">
             <label for="document-title">资料标题</label>
             <input id="document-title" v-model="editTitle" maxlength="200" required :disabled="saving" />
@@ -371,56 +459,78 @@ function localTime(value) {
           </template>
 
           <p v-if="editError" class="error" role="alert">{{ editError }}</p>
-        </form><template #footer="{close}"><button type="button" :disabled="saving" @click="close">取消</button><button type="submit" form="document-edit" class="primary" :disabled="saving||loadingFolders">{{saving?'正在保存…':edit==='folder'?'移到此处':'保存修改'}}</button></template></WorkOverlay>
-      </section>
-
-
+      </form><template #footer="{close}"><button type="button" :disabled="saving" @click="close">取消</button><button type="submit" form="document-edit" class="primary" :disabled="saving||loadingFolders">{{saving?'正在保存…':edit==='folder'?'移到此处':'保存修改'}}</button></template></WorkOverlay>
 
       <WorkOverlay v-if="uploadOpen" title="上传新版本" :description="document.title" :busy="uploading" :dirty="uploadDirty" @close="uploadOpen=false;uploadDirty=false"><form id="version-upload" @submit.prevent="uploadVersion"><div class="upload-drop"><AppIcon name="upload"/><label for="version-file">选择新版本原文</label><input id="version-file" type="file" name="file" accept=".txt,.md" required :disabled="uploading" @change="uploadDirty=!!$event.target.files?.length"/><small>UTF-8 TXT / Markdown · 最大 10 MiB</small></div><p>历史原文将保留。手动处理成功后，检索会使用新版本。</p><p v-if="uploadError" class="error" role="alert">{{uploadError}}</p></form><template #footer="{close}"><button type="button" :disabled="uploading" @click="close">取消</button><button type="submit" form="version-upload" class="primary" :disabled="uploading">{{uploading?'正在上传…':'上传新版本'}}</button></template></WorkOverlay>
 
-      <section aria-labelledby="history-title">
-        <h2 id="history-title">版本历史</h2>
-        <p v-if="processError" class="error" role="alert">{{ processError }}</p>
-        <p v-if="loadingHistory" role="status">正在读取版本…</p>
-        <div v-else-if="historyError">
-          <p role="alert" class="error">无法读取版本历史。{{ historyError }}</p>
-          <button type="button" @click="loadHistory(offset)">重试历史</button>
-        </div>
-        <template v-else>
-          <p v-if="!versions.length">还没有原文版本。</p>
-          <ul v-else class="version-history">
-            <li v-for="version in versions" :key="version.id">
-              <strong>v{{ version.version_no }}</strong>
-              <span v-if="version.id === document.latest_version_id" class="latest">最新上传</span>
-              <span>{{ localTime(version.captured_at) }}</span>
-              <span>{{ version.byte_size.toLocaleString('zh-CN') }} 字节</span>
-              <span v-if="runsByVersion[version.id]?.some(run => run.is_published)" class="latest">当前可检索</span>
-              <span v-if="processingVersion === version.id || isRunning(version.id)" role="status">处理中…</span>
-              <span v-else-if="latestRun(version.id)" role="status">
-                {{ processingLabels[latestRun(version.id).status] ?? latestRun(version.id).status }}
-                <template v-if="latestRun(version.id).status === 'succeeded'">
-                  · {{ latestRun(version.id).chunk_count }} 个片段
-                </template>
-              </span>
-              <span v-else-if="runsByVersion[version.id]">未处理</span>
-              <span v-if="latestRun(version.id)?.status === 'failed'" class="error">
-                {{ latestRun(version.id).error_summary || '处理失败' }}。同一配置不会自动重试。
-              </span>
-              <span v-if="runErrors[version.id]" class="error" role="alert">无法读取处理状态：{{ runErrors[version.id] }}</span>
-              <button v-if="runErrors[version.id]" type="button" @click="refreshRuns">刷新状态</button>
-              <button v-if="runsByVersion[version.id] && latestRun(version.id)?.status !== 'failed'"
-                type="button" :disabled="Boolean(processingVersion) || isRunning(version.id)"
-                @click="startProcessing(version)">处理</button>
-            </li>
-          </ul>
-          <div v-if="offset || hasNext" class="actions">
-            <button type="button" :disabled="!offset" @click="loadHistory(offset - PAGE_SIZE)">上一页</button>
-            <button type="button" :disabled="!hasNext" @click="loadHistory(offset + PAGE_SIZE)">下一页</button>
+      <div class="detail-layout">
+        <section class="detail-reader" aria-labelledby="original-title">
+          <header class="detail-panel-heading detail-reader-heading">
+            <h2 id="original-title" ref="readerHeading" tabindex="-1">原文<span v-if="original"> · v{{ original.version_no }}</span></h2>
+            <button v-if="historicalVersionId" type="button" @click="selectOriginal(document.latest_version_id)">查看最新原文</button>
+          </header>
+          <div class="detail-reader-body" :class="{ 'is-reading': original && original.content !== '' }" :aria-busy="originalLoading">
+            <p v-if="originalLoading" role="status">正在读取原文…</p>
+            <template v-else-if="originalError">
+              <p role="alert">{{ originalError }}</p>
+              <button type="button" @click="originalRetry++">重试读取</button>
+            </template>
+            <p v-else-if="!original">还没有原文版本。</p>
+            <p v-else-if="original.content === ''">此版本的原文为空。</p>
+            <pre v-else ref="readerText" class="detail-original-text" tabindex="0" aria-labelledby="original-title">{{ original.content }}</pre>
           </div>
-        </template>
-      </section>
-
-      <div class="detail-recycle"><span>不再需要这份资料？移入回收站后仍可恢复。</span><button type="button" class="ghost" @click="confirmingRecycle=true"><AppIcon name="trash" :size="15"/>移入回收站</button></div>
+        </section>
+        <section class="detail-versions" aria-labelledby="history-title">
+          <header class="detail-panel-heading"><h2 id="history-title">版本历史</h2></header>
+          <p v-if="processError" class="detail-panel-message error" role="alert">{{ processError }}</p>
+          <p v-if="loadingHistory" class="detail-panel-message" role="status">正在读取版本…</p>
+          <div v-else-if="historyError" class="detail-panel-message">
+            <p role="alert" class="error">无法读取版本历史。{{ historyError }}</p>
+            <button type="button" @click="loadHistory(offset)">重试历史</button>
+          </div>
+          <template v-else>
+            <p v-if="!versions.length" class="detail-panel-message">还没有原文版本。</p>
+            <ul v-else class="version-history">
+              <li v-for="version in versions" :key="version.id">
+                <div class="detail-version-heading">
+                  <button type="button" class="detail-version-select"
+                    :aria-label="'查看 v' + version.version_no + ' 原文'"
+                    :aria-pressed="readerVersionId === version.id"
+                    @click="selectOriginal(version.id)">v{{ version.version_no }}</button>
+                  <span v-if="version.id === document.latest_version_id" class="latest">最新上传</span>
+                  <span v-if="runsByVersion[version.id]?.some(run => run.is_published)" class="latest">当前可检索</span>
+                </div>
+                <div class="detail-version-meta">
+                  <time :datetime="version.captured_at">{{ localTime(version.captured_at) }}</time>
+                  <span>{{ version.byte_size.toLocaleString('zh-CN') }} 字节</span>
+                </div>
+                <div class="detail-version-actions">
+                  <span v-if="processingVersion === version.id || isRunning(version.id)" class="detail-version-status" role="status">处理中…</span>
+                  <span v-else-if="latestRun(version.id)" class="detail-version-status" role="status">
+                    {{ processingLabels[latestRun(version.id).status] ?? latestRun(version.id).status }}
+                    <template v-if="latestRun(version.id).status === 'succeeded'">
+                      · {{ latestRun(version.id).chunk_count }} 个片段
+                    </template>
+                  </span>
+                  <span v-else-if="runsByVersion[version.id]">未处理</span>
+                  <button v-if="runErrors[version.id]" type="button" @click="refreshRuns">刷新状态</button>
+                  <button v-if="runsByVersion[version.id] && latestRun(version.id)?.status !== 'failed'"
+                    type="button" :disabled="Boolean(processingVersion) || isRunning(version.id)"
+                    @click="startProcessing(version)">处理</button>
+                </div>
+                <p v-if="latestRun(version.id)?.status === 'failed'" class="error">
+                  {{ latestRun(version.id).error_summary || '处理失败' }}。同一配置不会自动重试。
+                </p>
+                <p v-if="runErrors[version.id]" class="error" role="alert">无法读取处理状态：{{ runErrors[version.id] }}</p>
+              </li>
+            </ul>
+            <div v-if="offset || hasNext" class="detail-version-pagination">
+              <button type="button" :disabled="!offset" @click="loadHistory(offset - PAGE_SIZE)">上一页</button>
+              <button type="button" :disabled="!hasNext" @click="loadHistory(offset + PAGE_SIZE)">下一页</button>
+            </div>
+          </template>
+        </section>
+      </div>
       <WorkOverlay v-if="confirmingRecycle" kind="modal" title="将资料移入回收站？" :busy="recycling" @close="confirmingRecycle=false;recycleError=''" ><p>「{{document.title}}」将移入回收站，之后可以恢复到原目录。</p><p v-if="recycleError" class="error" role="alert">{{recycleError}}</p><template #footer="{close}"><button type="button" :disabled="recycling" @click="close">取消</button><button type="button" class="danger" :disabled="recycling" @click="recycle">{{recycling?'正在移入…':'移入回收站'}}</button></template></WorkOverlay>
     </template>
   </main>

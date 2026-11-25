@@ -7,6 +7,7 @@ import AppIcon from './components/AppIcon.vue'
 import LoginView from './views/LoginViews.vue'
 import RegisterView from './views/RegisterView.vue'
 import { archiveTransition } from './components/rhine/archiveTransition.js'
+import { workspaceUserId } from './router'
 const sourceBuild = new URL(import.meta.url).pathname.split('/').at(-1).replace(/\.js$/, '')
 const sourceDownloadUrl = import.meta.env.DEV ? '/assets/source/personalrag-frontend-source.zip' : '/assets/source/personalrag-frontend-source-'+sourceBuild+'.zip'
 const route = useRoute()
@@ -28,6 +29,7 @@ const updateLayout = () => { compactLayout.value = layoutQuery.matches }
 onMounted(() => { layoutQuery = window.matchMedia('(max-width:760px)'); updateLayout(); layoutQuery.addEventListener('change', updateLayout) })
 onUnmounted(() => { layoutQuery?.removeEventListener('change', updateLayout) })
 provide('workspaceFoldersInline', computed(() => railCollapsed.value || compactLayout.value))
+provide('workspaceCompactLayout', compactLayout)
 async function logout() {
   if (loggingOut.value) return
   loggingOut.value = true
@@ -49,7 +51,7 @@ async function logout() {
   <RegisterView v-if="isRegistration" />
   <div v-if="!isLogin && !isRegistration" class="archive-viewport" :class="{ 'is-flying': archiveTransition.active }"
     :style="archiveTransition.active ? archiveTransition.frameStyle : undefined" :inert="archiveTransition.active || undefined" :aria-hidden="archiveTransition.active || undefined">
-  <div class="workspace" :class="{ 'is-rail-collapsed': railCollapsed }">
+  <div class="workspace" :class="{ 'is-rail-collapsed': railCollapsed && !compactLayout }">
     <a class="skip-link" href="#workspace-content">跳到主要内容</a>
     <aside id="workspace-navigation" class="workspace-rail">
       <RouterLink to="/library" class="brand" aria-label="PersonalRAG 资料库首页">
@@ -68,12 +70,14 @@ async function logout() {
       </button>
     </aside>
     <div class="workspace-main">
-    <header class="site-header"><button type="button" class="icon-button rail-toggle" :aria-label="railCollapsed?'展开侧栏':'折叠侧栏'" :aria-expanded="!railCollapsed" aria-controls="workspace-navigation" @click="railCollapsed=!railCollapsed"><AppIcon name="panel" :size="18"/></button><div id="workspace-breadcrumbs"></div><div class="workspace-heading"><AppIcon :name="current.icon" :size="17"/><RouterLink to="/library">工作区</RouterLink><span>/</span><p>{{ route.name === 'document' ? '资料详情' : current.label }}</p></div><div id="workspace-actions"></div><div class="workspace-clock"><RhineClock /></div></header>
+    <header class="site-header"><button v-if="!compactLayout" type="button" class="icon-button rail-toggle" :aria-label="railCollapsed?'展开侧栏':'折叠侧栏'" :aria-expanded="!railCollapsed" aria-controls="workspace-navigation" @click="railCollapsed=!railCollapsed"><AppIcon name="panel" :size="18"/></button><div id="workspace-breadcrumbs"></div><div class="workspace-heading"><AppIcon :name="current.icon" :size="17"/><RouterLink to="/library">工作区</RouterLink><span>/</span><p>{{ route.name === 'document' ? '资料详情' : current.label }}</p></div><div id="workspace-actions"></div><div class="workspace-clock"><RhineClock /></div></header>
     <p v-if="logoutError" class="session-error" role="alert">{{ logoutError }}</p>
     <div id="workspace-content" tabindex="-1">
       <RouterView v-slot="{ Component, route }">
         <Transition name="page" mode="out-in" :css="!archiveTransition.active">
-          <component :is="Component" :key="route.path" />
+          <KeepAlive :key="workspaceUserId" include="SearchView">
+            <component :is="Component" :key="route.path" />
+          </KeepAlive>
         </Transition>
       </RouterView>
     </div>

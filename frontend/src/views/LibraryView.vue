@@ -7,6 +7,7 @@ import FolderTree from '../components/FolderTree.vue'
 import LibraryTable from '../components/LibraryTable.vue'
 import LibrarySkeleton from '../components/LibrarySkeleton.vue'
 import { createFolderCache } from '../data/folderCache.js'
+import { libraryEmptyState, normalizeLibraryScope } from '../data/libraryScope.js'
 import { NConfigProvider, NButton, NInput, NSelect, NTag, NAlert, NEmpty } from 'naive-ui'
 
 const libraryTheme={
@@ -19,12 +20,19 @@ const libraryTheme={
 const route = useRoute()
 const router = useRouter()
 
-const folderPath = computed(() => [route.query.folder].flat().filter(Boolean))
+const folderPath = computed((previous) => {
+  const path = [route.query.folder].flat().filter(Boolean)
+  // Scope changes keep directory operations attached to the same path.
+  return path.length === previous?.length && path.every((id, index) => id === previous[index])
+    ? previous : path
+})
 const currentFolder = computed(() => folderPath.value.at(-1) ?? null)
 const breadcrumbs = ref([])
 const folders = ref([])
 const documents = ref([])
 const foldersInline = inject('workspaceFoldersInline', true)
+const compactLayout = inject('workspaceCompactLayout', false)
+const folderPicker = ref(null)
 const pageTags = computed(() => [...new Set(documents.value.flatMap(item => item.tags ?? []))])
 const loading = ref(true)
 const loadError = ref('')
@@ -58,7 +66,17 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 const PAGE_SIZE = 20
 const hasNextPage = ref(false)
 const offset = ref(0)
-const scope = ref('folder')
+const scope = computed(() => normalizeLibraryScope(route.query.scope, currentFolder.value))
+const scopeOptions = computed(() => [
+  { label: '当前目录（仅本层）', value: 'folder' },
+  ...(currentFolder.value ? [{ label: '当前目录及子目录', value: 'subtree' }] : []),
+  { label: '全库（所有目录）', value: 'all' },
+])
+const listTitle = computed(() => {
+  if (scope.value === 'all') return '全库资料'
+  if (scope.value === 'subtree') return '当前目录及子目录资料'
+  return currentFolder.value ? '当前目录资料' : '根目录资料'
+})
 const titleQuery = ref('')
 const tagQuery = ref('')
 const selectedTags = computed(() => [...new Set(tagQuery.value.split(/\r?\n/).map(tag => tag.trim()).filter(Boolean))])
@@ -69,7 +87,13 @@ function selectTags(tags) {
   tagQuery.value = [...new Set((tags??[]).map(tag=>tag.trim()).filter(Boolean))].join('\n')
   applyFilters()
 }
-const filters = ref({ scope: 'folder', q: '', tags: [] })
+const filters = ref({ q: '', tags: [] })
+const emptyState = computed(() => libraryEmptyState({
+  scope: scope.value,
+  folderId: currentFolder.value,
+  filtered: Boolean(filters.value.q || filters.value.tags.length),
+  childCount: folders.value.length,
+}))
 const filterError = ref('')
 let loadId = 0
 const folderCache = createFolderCache(async parentId => (await request(listUrl('folders','parent_id',parentId))).folders)
@@ -102,9 +126,9 @@ async function fetchFolders(parentId) {
 }
 
 function documentUrl(parentId) {
-  const { scope, q, tags } = filters.value
-  const params = new URLSearchParams({ scope, limit: String(PAGE_SIZE + 1), offset: String(offset.value) })
-  if (parentId && scope !== 'all') params.set('folder_id', parentId)
+  const { q, tags } = filters.value
+  const params = new URLSearchParams({ scope: scope.value, limit: String(PAGE_SIZE + 1), offset: String(offset.value) })
+  if (parentId && scope.value !== 'all') params.set('folder_id', parentId)
   if (q) params.set('q', q)
   for (const tag of tags) params.append('tag', tag)
   return '/api/documents?' + params
@@ -117,16 +141,25 @@ function applyFilters() {
     return
   }
   filterError.value = ''
-  filters.value = { scope: scope.value, q: titleQuery.value.trim(), tags }
+  filters.value = { q: titleQuery.value.trim(), tags }
   offset.value = 0
   loadDirectory(folderPath.value)
 }
 
 function clearFilters() {
-  scope.value = 'folder'
   titleQuery.value = ''
   tagQuery.value = ''
   applyFilters()
+}
+
+function changeScope(value) {
+  if (value === scope.value) return
+  return router.push({ path: '/library', query: { ...route.query, scope: value === 'folder' ? undefined : value } })
+}
+
+function openUpload() {
+  uploadError.value = ''
+  uploadOpen.value = true
 }
 
 function changePage(step) {
@@ -138,7 +171,7 @@ function changePage(step) {
 
 async function loadDirectory(path) {
   const id = ++loadId
-  const key = JSON.stringify([path,filters.value,offset.value])
+  const key = JSON.stringify([path,scope.value,filters.value,offset.value])
   const keepContent = hasContent.value&&displayedKey.value===key
   requestedKey.value = key
   loading.value = true
@@ -175,19 +208,26 @@ async function loadDirectory(path) {
   }
 }
 
-watch(folderPath, (path) => {
-  recycleTarget.value = null
-  recycleError.value = ''
-  recycleNotice.value = ''
+watch([folderPath, scope], ([path], previous) => {
+  const picker = folderPicker.value
+  if (picker?.open) {
+    if (picker.contains(document.activeElement)) picker.querySelector('summary')?.focus({ preventScroll: true })
+    picker.open = false
+  }
+  if (path !== previous?.[0]) {
+    recycleTarget.value = null
+    recycleError.value = ''
+    recycleNotice.value = ''
+    editor.value = null
+    uploadOpen.value = false
+    uploadDirty.value = false
+    peek.value = null
+    uploadError.value = ''
+    uploadNotice.value = ''
+    moving.value = null
+    moveNotice.value = ''
+  }
   offset.value = 0
-  if (!path.length && scope.value === 'subtree') scope.value = 'folder'
-  if (!path.length && filters.value.scope === 'subtree') filters.value = { ...filters.value, scope: 'folder' }
-  editor.value = null
-  uploadOpen.value=false;uploadDirty.value=false;peek.value=null
-  uploadError.value = ''
-  uploadNotice.value = ''
-  moving.value = null
-  moveNotice.value = ''
   loadDirectory(path)
 }, { immediate: true })
 
@@ -349,24 +389,28 @@ async function uploadDocument(event) {
 <template>
   <NConfigProvider tag="main" class="library library-list-layout library-naive" :theme-overrides="libraryTheme" preflight-style-disabled>
     <header class="library-header">
-    <Teleport defer to="#workspace-breadcrumbs"><nav aria-label="当前位置" class="breadcrumbs"><RouterLink :to="location([])">资料库</RouterLink><template v-for="(folder,index) in breadcrumbs" :key="folder.id"><AppIcon name="chevron" :size="12"/><RouterLink v-if="index<breadcrumbs.length-1" :to="location(folderPath.slice(0,index+1))">{{folder.name}}</RouterLink><span v-else aria-current="page">{{folder.name}}</span></template></nav></Teleport>
+    <Teleport defer to="#workspace-breadcrumbs"><nav aria-label="当前位置" class="breadcrumbs"><RouterLink :to="location([])">资料库根目录</RouterLink><template v-for="(folder,index) in breadcrumbs" :key="folder.id"><AppIcon name="chevron" :size="12"/><RouterLink v-if="index<breadcrumbs.length-1" :to="location(folderPath.slice(0,index+1))">{{folder.name}}</RouterLink><span v-else aria-current="page">{{folder.name}}</span></template></nav></Teleport>
     <div class="directory-heading"><div><h1>{{breadcrumbs.at(-1)?.name ?? '我的资料'}}</h1><p class="page-description">按目录整理资料，查看原文与版本。</p></div></div>
-    <Teleport defer to="#workspace-actions"><div class="heading-actions library-naive naive-actions"><NButton :disabled="loading||!!loadError" @click="editFolder()"><template #icon><AppIcon name="plus" :size="16"/></template>新建文件夹</NButton><NButton type="primary" :disabled="loading||!!loadError" @click="uploadOpen=true;uploadError='' "><template #icon><AppIcon name="upload" :size="16"/></template>上传资料</NButton></div></Teleport>
+    <Teleport defer to="#workspace-actions"><div class="heading-actions library-naive naive-actions"><NButton :disabled="loading||!!loadError" @click="editFolder()"><template #icon><AppIcon name="plus" :size="16"/></template>新建文件夹</NButton><NButton type="primary" :disabled="loading||!!loadError" @click="openUpload"><template #icon><AppIcon name="upload" :size="16"/></template>上传资料</NButton></div></Teleport>
     </header>
     <div class="desk-overview" aria-label="当前列表概览"><span><strong>{{hasContent?documents.length:'—'}}</strong> 本页资料</span><span><strong>{{hasContent?folders.length:'—'}}</strong> 子文件夹</span><span><strong>{{hasContent?pageTags.length:'—'}}</strong> 本页标签</span></div>
     <NAlert v-if="moveNotice||recycleNotice||uploadNotice" class="desk-notice" type="success" :show-icon="false">{{moveNotice||recycleNotice||uploadNotice}}</NAlert>
-    <Teleport defer to="#workspace-folders" :disabled="foldersInline">
+    <details v-show="foldersInline" ref="folderPicker" class="desk-folder-picker">
+      <summary><AppIcon name="folder" :size="18"/><span>浏览文件夹</span><AppIcon name="chevron" :size="16"/></summary>
+      <div id="library-compact-folders"></div>
+    </details>
+    <Teleport defer :to="foldersInline ? '#library-compact-folders' : '#workspace-folders'">
     <section class="data-section library-folders" aria-labelledby="folders-title">
-      <div class="section-toolbar"><div><span class="section-eyebrow">当前目录</span><h2 id="folders-title">文件夹</h2></div></div>
+      <div class="section-toolbar"><h2 id="folders-title">文件夹</h2></div>
       <FolderTree :path="folderPath" :fetch-children="fetchFolders" :revision="folderRevision" @rename="editFolder" @move="startFolderMove" @recycle="startFolderRecycle" />
     </section>
     </Teleport>
     <section class="desk-surface" aria-labelledby="documents-title">
-    <div class="desk-toolbar"><div class="desk-list-heading"><h2 id="documents-title">资料列表</h2><NTag size="small" round :bordered="false">{{hasContent?documents.length+' 份':'读取中'}}</NTag></div><NButton quaternary size="small" :disabled="loading" :loading="refreshingContent" aria-label="刷新资料" @click="refreshDirectory"><template #icon><AppIcon name="refresh" :size="15"/></template>{{refreshingContent?'刷新中':'刷新'}}</NButton></div>
+    <div class="desk-toolbar"><div class="desk-list-heading"><h2 id="documents-title">{{ listTitle }}</h2><NTag v-if="hasContent" size="small" round :bordered="false">本页 {{ documents.length }} 份</NTag></div><NButton quaternary size="small" :disabled="loading" :loading="refreshingContent" aria-label="刷新资料" @click="refreshDirectory"><template #icon><AppIcon name="refresh" :size="15"/></template>{{refreshingContent?'刷新中':'刷新'}}</NButton></div>
     <form class="desk-filters" @submit.prevent="applyFilters">
       <div class="desk-filter-row">
         <NInput v-model:value="titleQuery" clearable placeholder="搜索资料标题" :input-props="{id:'document-query','aria-label':'标题关键词'}"><template #prefix><AppIcon name="search" :size="17"/></template></NInput>
-        <NSelect v-model:value="scope" class="desk-scope" aria-label="筛选范围" :options="[{label:'当前目录',value:'folder'},...(currentFolder?[{label:'包含子目录',value:'subtree'}]:[]),{label:'全部资料',value:'all'}]" :input-props="{'aria-label':'筛选范围'}" :menu-props="{class:'library-naive-popup'}"/>
+        <NSelect :value="scope" class="desk-scope" aria-label="筛选范围" :options="scopeOptions" :input-props="{'aria-label':'筛选范围'}" :menu-props="{class:'library-naive-popup'}" @update:value="changeScope"/>
         <NButton type="primary" attr-type="submit" aria-label="筛选资料">搜索</NButton>
         <NButton quaternary @click="clearFilters">重置</NButton>
       </div>
@@ -377,12 +421,19 @@ async function uploadDocument(event) {
     <NAlert v-if="loadError&&hasContent" class="desk-refresh-error" type="warning" :show-icon="false">刷新失败，保留上次结果：{{loadError}}</NAlert>
     <div class="state-region desk-content" :aria-busy="loading">
       <Transition name="state">
-        <LibrarySkeleton v-if="loading&&!refreshingContent" key="loading"/>
+        <LibrarySkeleton v-if="loading&&!refreshingContent" key="loading" :compact="compactLayout"/>
         <div v-else-if="loadError&&!hasContent" key="error" class="desk-error" role="alert"><NEmpty :description="loadError"><template #extra><NButton @click="loadDirectory(folderPath)">重新读取</NButton></template></NEmpty></div>
-        <LibraryTable v-else key="content" :documents="documents" :query="route.query" @preview="quickView" @clear="clearFilters"/>
+        <NEmpty v-else-if="!documents.length" key="empty" class="desk-empty" :description="emptyState.description">
+          <template #extra>
+            <NButton v-if="emptyState.action === 'clear'" size="small" @click="clearFilters">清除筛选</NButton>
+            <NButton v-else-if="emptyState.action === 'all'" size="small" @click="changeScope('all')">查看全库资料</NButton>
+            <NButton v-else size="small" :disabled="loading||!!loadError" @click="openUpload">上传资料</NButton>
+          </template>
+        </NEmpty>
+        <LibraryTable v-else key="content" :documents="documents" :query="route.query" :compact="compactLayout" @preview="quickView"/>
       </Transition>
     </div>
-    <nav class="desk-pagination" aria-label="资料分页"><span>每页 {{PAGE_SIZE}} 份 · 本页 {{documents.length}} 份</span><div><NButton size="small" :disabled="loading||offset===0" @click="changePage(-1)"><template #icon><AppIcon name="back" :size="14"/></template>上一页</NButton><span class="desk-page-number" aria-current="page">{{offset/PAGE_SIZE+1}}</span><NButton size="small" :disabled="loading||!hasNextPage" @click="changePage(1)">下一页<template #icon><AppIcon name="chevron" :size="14"/></template></NButton></div></nav>
+    <nav v-if="offset||hasNextPage" class="desk-pagination" aria-label="资料分页"><span>每页 {{PAGE_SIZE}} 份 · 本页 {{documents.length}} 份</span><div><NButton size="small" :disabled="loading||offset===0" @click="changePage(-1)"><template #icon><AppIcon name="back" :size="14"/></template>上一页</NButton><span class="desk-page-number" aria-current="page">{{offset/PAGE_SIZE+1}}</span><NButton size="small" :disabled="loading||!hasNextPage" @click="changePage(1)">下一页<template #icon><AppIcon name="chevron" :size="14"/></template></NButton></div></nav>
     </section>
     <WorkOverlay v-if="editor" kind="modal" :title="editor.folder?'重命名文件夹':'新建文件夹'" :busy="saving" :dirty="name!==(editor.folder?.name??'')" @close="editor=null"><form id="folder-form" @submit.prevent="saveFolder"><div class="field"><label for="folder-name">文件夹名称</label><input id="folder-name" v-model="name" maxlength="200" required :disabled="saving"/></div><p v-if="saveError" class="error" role="alert">{{saveError}}</p></form><template #footer="{close}"><button type="button" :disabled="saving" @click="close">取消</button><button type="submit" form="folder-form" class="primary" :disabled="saving">{{saving?'正在保存…':'保存文件夹'}}</button></template></WorkOverlay>
     <WorkOverlay v-if="uploadOpen" title="上传新资料" description="上传到当前目录，同名文件会创建独立资料。" :busy="uploading" :dirty="uploadDirty" @close="uploadOpen=false;uploadDirty=false"><form id="upload-form" @submit.prevent="uploadDocument"><div class="upload-drop"><AppIcon name="upload"/><label for="upload-file">选择原文文件</label><input id="upload-file" name="file" type="file" accept=".txt,.md" required :disabled="uploading" @change="uploadDirty=!!$event.target.files?.length"/><small>UTF-8 TXT / Markdown · 最大 10 MiB</small></div><p>上传后，在版本详情中手动处理即可检索正文。</p><p v-if="uploadError" class="error" role="alert">{{uploadError}}</p></form><template #footer="{close}"><button type="button" :disabled="uploading" @click="close">取消</button><button type="submit" form="upload-form" class="primary" :disabled="uploading">{{uploading?'正在上传…':'上传文件'}}</button></template></WorkOverlay>

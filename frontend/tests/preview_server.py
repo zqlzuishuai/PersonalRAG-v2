@@ -19,10 +19,15 @@ from web_frontend import add_frontend_routes
 
 DOC = '11111111-1111-4111-8111-111111111111'
 VERSION = '22222222-2222-4222-8222-222222222222'
+LATEST_VERSION = '77777777-7777-4777-8777-777777777777'
 FOLDER = '33333333-3333-4333-8333-333333333333'
 TIME = '2026-11-08T04:00:00Z'
 document = {'id': DOC, 'title': '界面验收示例 · 知识归档笔记', 'tags': ['示例', '知识管理'],
-            'updated_at': TIME, 'created_at': TIME, 'latest_version_id': VERSION, 'folder_id': None}
+            'updated_at': TIME, 'created_at': TIME, 'latest_version_id': LATEST_VERSION, 'folder_id': FOLDER}
+originals = {
+    LATEST_VERSION: (2, '# 最新原文\n\n这是刚上传的版本，尚未处理。\n\n<script>这里按字面显示</script>\n'),
+    VERSION: (1, '# 历史原文\n\n这是已经处理过的旧版。\n'),
+}
 folders = [{'id': FOLDER, 'name': '示例文件夹', 'parent_id': None}]
 trashed_documents = [{'id': '44444444-4444-4444-8444-444444444444', 'title': '示例 · 已回收草稿', 'deleted_at': TIME}]
 trashed_folders = [{'id': '55555555-5555-4555-8555-555555555555', 'name': '示例 · 旧归档', 'deleted_at': TIME}]
@@ -48,7 +53,7 @@ async def api(request):
     if request.cookies.get('ui_preview') != 'yes':
         return JSONResponse({'error': '请先登录'}, status_code=401)
     if path == '/api/auth/me':
-        return JSONResponse({'user': {'id': DOC, 'login_name': 'preview'}})
+        return JSONResponse({'user_id': DOC})
     if path == '/api/folders' and method == 'GET':
         return JSONResponse({'folders': [] if request.query_params.get('parent_id') else folders})
     if path == '/api/folders' and method == 'POST':
@@ -57,8 +62,10 @@ async def api(request):
         folders.append(entry)
         return JSONResponse(entry, status_code=201)
     if path == '/api/documents' and method == 'GET':
-        q = request.query_params.get('q', '')
-        return JSONResponse({'documents': [] if q and q not in document['title'] else [document]})
+        params = request.query_params
+        in_scope = params.get('scope') == 'all' or params.get('folder_id') == document['folder_id']
+        matches = params.get('q', '') in document['title'] and all(tag in document['tags'] for tag in params.getlist('tag'))
+        return JSONResponse({'documents': [document] if in_scope and matches else []})
     if path == f'/api/documents/{DOC}' and method == 'GET':
         return JSONResponse(document)
     if path == f'/api/documents/{DOC}' and method == 'PATCH':
@@ -68,9 +75,17 @@ async def api(request):
         document['tags'] = (await request.json())['tags']
         return Response(status_code=204)
     if path == f'/api/documents/{DOC}/versions':
-        return JSONResponse({'versions': [{'id': VERSION, 'version_no': 1, 'captured_at': TIME, 'byte_size': 1024}]})
-    if path == f'/api/versions/{VERSION}/processing-runs':
-        return JSONResponse({'runs': [{'id': DOC, 'status': 'succeeded', 'is_published': True, 'chunk_count': 3}]})
+        return JSONResponse({'versions': [
+            {'id': version_id, 'version_no': number, 'captured_at': TIME, 'byte_size': len(content.encode())}
+            for version_id, (number, content) in originals.items()
+        ]})
+    for version_id, (number, content) in originals.items():
+        if path == f'/api/documents/{DOC}/versions/{version_id}/content' and method == 'GET':
+            return JSONResponse({'content': content, 'version_no': number, 'media_type': 'text/markdown'},
+                                headers={'Cache-Control': 'private, no-store'})
+        if path == f'/api/versions/{version_id}/processing-runs':
+            return JSONResponse({'runs': [{'id': DOC, 'status': 'succeeded', 'is_published': True, 'chunk_count': 3}]
+                                 if version_id == VERSION else []})
     if path == '/api/trash/documents':
         return JSONResponse({'documents': trashed_documents})
     if path == '/api/trash/folders':
